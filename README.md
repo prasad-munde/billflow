@@ -4,7 +4,7 @@
 
 ---
 
-## 🚀 Live Demo & Demo Credentials
+##  Live Demo & Demo Credentials
 
 - **Demo Account Email:** `demo@billflow.app`
 - **Demo Account Password:** `Demo123!` *(or use the 1-click **Use Demo Login** button on the sign-in page)*
@@ -12,7 +12,7 @@
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 | :--- | :--- |
@@ -24,7 +24,7 @@
 
 ---
 
-## ✨ Key Features & SaaS Capabilities
+##  Key Features & SaaS Capabilities
 
 ### 1. Multi-Tenant User Isolation & Authentication
 - Secure JWT bearer token authentication with bcrypt password hashing (`/auth/signup`, `/auth/login`, `/auth/me`).
@@ -68,7 +68,7 @@
 
 ---
 
-## 📁 Repository Structure
+##  Repository Structure
 
 ```
 BillFlow/
@@ -136,7 +136,7 @@ BillFlow/
 
 ---
 
-## 🏃 Local Development Setup
+##  Local Development Setup
 
 ### 1. Prerequisites
 - Python 3.10+
@@ -181,7 +181,7 @@ pytest -v
 
 ---
 
-## 🌐 Production Deployment Guide
+##  Production Deployment Guide
 
 ### Deploy Backend (Render / Railway / Fly.io)
 1. Provision a managed **PostgreSQL database** (e.g. Neon, Supabase, or Render Postgres).
@@ -200,6 +200,5 @@ pytest -v
 
 ---
 
-## 📄 License
-MIT License. Built for the Full Stack SaaS Assessment.
+
 
