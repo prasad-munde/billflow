@@ -1,0 +1,65 @@
+# Environment & Secrets (Never commit actual env secrets)
+.env
+.env*.local
+.env.development
+.env.production
+.env.test
+!.env.example
+
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.benchmarks/
+
+# Databases & local state
+*.db
+*.sqlite3
+*.db-journal
+*.sqlite3-journal
+
+# Uploads (keep directory structure)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Node / Next.js / Frontend
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS & IDE Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+

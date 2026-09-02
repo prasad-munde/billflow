@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: billflow
+      POSTGRES_USER: billflow
+      POSTGRES_PASSWORD: billflow
+    ports: ["5432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://billflow:billflow@db:5432/billflow
+      SECRET_KEY: local-development-secret
+      FRONTEND_URL: http://localhost:3000
+    ports: ["8000:8000"]
+    depends_on: [db]
+  web:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports: ["3000:3000"]
+    depends_on: [api]
+volumes:
+  postgres_data:

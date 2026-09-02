@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.benchmarks/
+*.db
+*.sqlite3
+.venv/
+env/
+venv/
+uploads/*
+!uploads/.gitkeep
