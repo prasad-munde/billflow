@@ -20,7 +20,12 @@ def test_client_crud(client, auth_headers):
     # 2. Get client by id
     get_res = client.get(f"/clients/{client_id}", headers=auth_headers)
     assert get_res.status_code == 200
-    assert get_res.json()["email"] == "sophie@atelier.com"
+    res_json = get_res.json()
+    assert res_json["email"] == "sophie@atelier.com"
+    assert "total_paid" in res_json
+    assert "total_overdue" in res_json
+    assert "total_outstanding" in res_json
+    assert "invoices_count" in res_json
 
     # 3. Update client
     update_res = client.put(

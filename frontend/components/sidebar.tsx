@@ -12,6 +12,8 @@ import {
   ArrowLeftStartOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
+  BookOpenIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { api, removeToken, toast } from "@/lib/api";
@@ -20,6 +22,7 @@ const links = [
   { href: "/dashboard", label: "Overview", icon: ChartPieIcon },
   { href: "/invoices", label: "Invoices", icon: DocumentTextIcon },
   { href: "/clients", label: "Clients", icon: UsersIcon },
+  { href: "/guide", label: "Learn & Docs", icon: BookOpenIcon },
   { href: "/settings", label: "Settings", icon: Cog6ToothIcon },
 ];
 
@@ -147,7 +150,21 @@ export function Sidebar() {
           </nav>
         </div>
 
-        <div className="border-t border-ink/10 pt-4">
+        <div className="border-t border-ink/10 pt-4 space-y-2">
+          <Link
+            href="/guide"
+            className="flex w-full items-center gap-2.5 rounded-xl border border-ink/10 bg-paper px-3 py-2 text-xs font-bold text-ink/75 hover:bg-ink/5 hover:text-ink transition"
+          >
+            <BookOpenIcon className="size-4 text-cobalt shrink-0" />
+            <span>Learn to Use & Docs</span>
+          </Link>
+          <Link
+            href="/portal"
+            target="_blank"
+            className="flex w-full items-center gap-2.5 rounded-xl border border-dashed border-cobalt/30 bg-cobalt/5 px-3 py-2 text-xs font-bold text-cobalt hover:bg-cobalt/10 transition"
+          >
+            <span>Client Portal Preview ↗</span>
+          </Link>
           {userEmail && (
             <div className="mb-2 px-3 py-1">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink/40">Signed in as</p>

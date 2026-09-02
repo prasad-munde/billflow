@@ -57,7 +57,35 @@ export async function api<T = any>(path: string, options: RequestInit = {}): Pro
   return response.json();
 }
 
+api.get = <T = any>(path: string, options?: RequestInit) =>
+  api<T>(path, { ...options, method: "GET" });
+
+api.post = <T = any>(path: string, body?: any, options?: RequestInit) =>
+  api<T>(path, {
+    ...options,
+    method: "POST",
+    body: body !== undefined ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
+  });
+
+api.put = <T = any>(path: string, body?: any, options?: RequestInit) =>
+  api<T>(path, {
+    ...options,
+    method: "PUT",
+    body: body !== undefined ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
+  });
+
+api.patch = <T = any>(path: string, body?: any, options?: RequestInit) =>
+  api<T>(path, {
+    ...options,
+    method: "PATCH",
+    body: body !== undefined ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
+  });
+
+api.delete = <T = any>(path: string, options?: RequestInit) =>
+  api<T>(path, { ...options, method: "DELETE" });
+
 export const apiUrl = API_BASE_URL;
+
 
 export function money(amount: number, currency = "USD"): string {
   const cleanCurrency = (currency || "USD").toUpperCase().trim();

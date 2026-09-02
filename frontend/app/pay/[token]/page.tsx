@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { api, apiUrl, formatDate, money, toast } from "@/lib/api";
 import {
   CheckCircleIcon,
@@ -119,21 +120,30 @@ export default function PublicInvoicePage() {
   return (
     <main className="gridline min-h-screen p-4 md:p-12">
       {/* Top action bar */}
-      <div className="no-print mx-auto mb-6 flex max-w-4xl items-center justify-between">
+      <div className="no-print mx-auto mb-6 flex max-w-4xl flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="grid size-7 place-items-center rounded-lg bg-lime text-xs font-sans font-bold text-ink">
             B
           </span>
           <span className="font-display font-bold text-ink">BillFlow Secure Invoice</span>
         </div>
-        <button
-          onClick={() => window.print()}
-          className="btn-light !px-3.5 !py-2 text-xs font-bold"
-        >
-          <ArrowDownTrayIcon className="size-4" />
-          <span>Print / PDF</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/portal?token=${token}`}
+            className="btn-light !px-3.5 !py-2 text-xs font-bold text-cobalt hover:bg-cobalt/5"
+          >
+            <span>View All My Invoices (Portal) →</span>
+          </Link>
+          <button
+            onClick={() => window.print()}
+            className="btn-light !px-3.5 !py-2 text-xs font-bold"
+          >
+            <ArrowDownTrayIcon className="size-4" />
+            <span>Print / PDF</span>
+          </button>
+        </div>
       </div>
+
 
       <article className="print-container mx-auto max-w-4xl rounded-[2.5rem] border border-ink/10 bg-white p-6 shadow-soft md:p-12">
         {/* Header with Business Name & Status */}

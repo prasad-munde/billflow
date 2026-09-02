@@ -1,10 +1,33 @@
 import re
 from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 from app.auth import current_user
+from app.database import get_db
 from app.models import User
-from app.schemas import AIDraftRequest, AIDraftResponse, ItemInput
+from app.schemas import AIChatRequest, AIChatResponse, AIDraftRequest, AIDraftResponse, ItemInput
+from app.services.llm_tools import BILLFLOW_TOOLS_SPEC, agent_intent_and_tool_dispatcher, execute_tool_call
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+
+@router.get("/tools")
+def get_available_tools():
+    """Return all registered agentic tools for UI inspection."""
+    return {"tools": BILLFLOW_TOOLS_SPEC}
+
+@router.post("/chat", response_model=AIChatResponse)
+def ai_chat_assistant(
+    payload: AIChatRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """
+    Process natural language prompts, dispatch tools, and return execution results.
+    """
+    result = agent_intent_and_tool_dispatcher(payload.message, db, user)
+    return AIChatResponse(
+        text=result["text"],
+        tool_calls=result.get("tool_calls", []),
+    )
 
 def parse_prompt_heuristic(prompt: str) -> AIDraftResponse:
     items: list[ItemInput] = []
@@ -57,4 +80,5 @@ def parse_prompt_heuristic(prompt: str) -> AIDraftResponse:
 @router.post("/draft-invoice", response_model=AIDraftResponse)
 def draft_invoice_from_ai(payload: AIDraftRequest, user: User = Depends(current_user)):
     return parse_prompt_heuristic(payload.prompt)
+
 
