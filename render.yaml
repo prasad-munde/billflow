@@ -13,6 +13,8 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         sync: false
+      - key: PYTHONPATH
+        value: .
 databases:
   - name: billflow-db
     databaseName: billflow

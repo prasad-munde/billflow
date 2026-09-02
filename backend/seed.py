@@ -1,9 +1,19 @@
+import os
+import sys
+from pathlib import Path
 from datetime import date, datetime, timedelta, timezone
+
+# Ensure the backend directory is in sys.path
+backend_dir = str(Path(__file__).resolve().parent)
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 from app.auth import hash_password
 from app.database import Base, SessionLocal, engine
 from app.models import BusinessSettings, Client, Invoice, InvoiceItem, User
 
 Base.metadata.create_all(engine)
+
 db = SessionLocal()
 
 demo_email = "demo@billflow.app"
