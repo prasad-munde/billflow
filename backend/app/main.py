@@ -48,9 +48,11 @@ app.include_router(settings_router.router)
 app.include_router(ai.router)
 
 
+@app.get("/", tags=["system"])
 @app.get("/health", tags=["system"])
 def health():
     return {"status": "healthy", "service": "BillFlow API", "version": "1.0.0"}
+
 
 
 @app.get("/me", response_model=UserOut, tags=["auth"])
