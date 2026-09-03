@@ -347,11 +347,94 @@ def execute_tool_call(tool_name: str, arguments: dict, db: Session, user: User) 
 def agent_intent_and_tool_dispatcher(message: str, db: Session, user: User) -> dict:
     """
     Intelligent natural language agent with tool calling.
-    Analyzes intent, selects and executes tool(s), and returns conversational synthesis.
+    Analyzes intent, selects and executes tool(s) ONLY when needed, and returns conversational synthesis.
     """
     msg = message.strip()
     msg_lower = msg.lower()
     tool_calls = []
+
+    # Conversational greetings and pleasantries (NO TOOLS)
+    greetings = ["hi", "hello", "hey", "good morning", "good evening", "howdy", "how are you", "what's up", "whats up"]
+    if any(msg_lower == g or msg_lower.startswith(g + " ") or msg_lower.startswith(g + ",") or msg_lower.startswith(g + "!") for g in greetings):
+        if not any(w in msg_lower for w in ["invoice", "client", "bill", "due", "pay", "revenue", "money", "summary"]):
+            return {
+                "text": "Hello! How can I help you today? Whether you want to check client balances, audit overdue invoices, or create a new invoice, just let me know!",
+                "tool_calls": []
+            }
+
+    if msg_lower in ["thanks", "thank you", "thx", "appreciate it", "great", "awesome", "perfect", "cool", "ok", "okay"]:
+        return {
+            "text": "You're welcome! Let me know whenever you need anything else.",
+            "tool_calls": []
+        }
+
+    # BillFlow System Knowledge Answers (NO TOOLS)
+    if "portal" in msg_lower or "batch pay" in msg_lower:
+        return {
+            "text": (
+                "### 🌐 BillFlow Client Portal & Batch Pay\n\n"
+                "The **Client Portal** (`/portal`) allows your clients to see **all their invoices in one unified view**:\n\n"
+                "• **No Account Setup Required**: Clients simply log in using their email address.\n"
+                "• **Unified Dashboard**: Clients see all pending, overdue, and paid invoices sent to them across studios.\n"
+                "• **Batch Payment**: Clients can select multiple pending invoices using checkboxes and pay them simultaneously in a single transaction!\n\n"
+                "Clients can also access any individual invoice via its secure instant payment link (`/pay/[token]`)."
+            ),
+            "tool_calls": []
+        }
+
+    if "pdf" in msg_lower or "print" in msg_lower or "download" in msg_lower:
+        return {
+            "text": (
+                "### 🖨️ Printing & PDF Export\n\n"
+                "Every invoice in BillFlow can be printed or saved as a PDF directly:\n\n"
+                "1. Navigate to any invoice at `/invoices/[id]`.\n"
+                "2. Click the **'Print / Save PDF'** button in the header.\n"
+                "3. Your browser's print dialog will open with print stylesheet styling formatted like a high-end physical receipt.\n"
+                "4. Choose **'Save as PDF'** to export a clean digital document."
+            ),
+            "tool_calls": []
+        }
+
+    if ("segregation" in msg_lower or "client metrics" in msg_lower or "client breakdown" in msg_lower) and not any(k in msg_lower for k in ["maya", "david", "elena", "marcus", "show", "list", "get"]):
+        return {
+            "text": (
+                "### 📊 Client-Wise Financial Segregation\n\n"
+                "On the **Clients** page (`/clients`), BillFlow automatically segregates finances per client:\n\n"
+                "• **Lifetime Revenue Collected**: Total amount paid by that specific client.\n"
+                "• **Outstanding Receivables**: Unpaid sent invoices for that client.\n"
+                "• **Overdue Balances**: Amount past the due date.\n"
+                "• **Invoice Count**: Total invoices issued to them.\n\n"
+                "You can also ask me: *'What is Maya Chen's overdue balance?'* to audit any client instantly."
+            ),
+            "tool_calls": []
+        }
+
+    if "how does overdue" in msg_lower or "overdue status" in msg_lower:
+        return {
+            "text": (
+                "### 🚨 Dynamic Overdue Calculation\n\n"
+                "In BillFlow, invoice overdue status is **computed automatically**:\n\n"
+                "• When an invoice is created with a `due_date`, the system monitors its payment state.\n"
+                "• If the invoice status is still `sent` and today's date exceeds the `due_date`, it is dynamically flagged as **Overdue**.\n"
+                "• When the client completes payment, the status automatically switches to **Paid** and the overdue flag clears."
+            ),
+            "tool_calls": []
+        }
+
+    if "what can you do" in msg_lower or "features" in msg_lower or "help me with" in msg_lower:
+        return {
+            "text": (
+                "### 🤖 What I Can Do As Your AI Operator\n\n"
+                "I am your central command center for all studio operations and questions:\n\n"
+                "1. **System Expert**: Ask me anything about BillFlow (Client Portal, Batch Pay, PDF printing, taxes, discounts, settings).\n"
+                "2. **Audits & Diagnostics**: Ask *'Who owes me money?'* or *'Show Maya Chen's overdue balance'*.\n"
+                "3. **Autonomous Invoicing**: Say *'Create an invoice for David Sterling for $1,500 due in 10 days'*.\n"
+                "4. **Client Directory**: Say *'Add client Acme Corp with email billing@acme.com'*.\n"
+                "5. **Business KPIs**: Say *'What are my studio metrics?'* for collected revenue vs receivables."
+            ),
+            "tool_calls": []
+        }
+
 
     # 1. Create client intent
     # e.g., "create client Acme Corp with email info@acme.com" or "add client John Doe email john@doe.com"
@@ -446,15 +529,234 @@ def agent_intent_and_tool_dispatcher(message: str, db: Session, user: User) -> d
         text = f"Here are your latest **{len(res['invoices'])} invoices**:\n\n" + "\n".join(lines)
         return {"text": text, "tool_calls": tool_calls}
 
-    # 7. Default: Dashboard Summary
-    res = tool_get_dashboard_summary(db, user)
-    tool_calls.append({"tool": "get_dashboard_summary", "args": {}, "result": res})
+    # 7. Dashboard Summary / Overview (only when explicitly requested)
+    if any(k in msg_lower for k in ["summary", "overview", "metric", "kpi", "diagnostic", "performance", "how is business", "total revenue", "earnings"]):
+        res = tool_get_dashboard_summary(db, user)
+        tool_calls.append({"tool": "get_dashboard_summary", "args": {}, "result": res})
+        text = (
+            f"**Studio Financial Performance Overview**:\n\n"
+            f"• **Total Revenue Earned**: `${res['total_revenue_earned']:,.2f}`\n"
+            f"• **Pending Receivables**: `${res['total_pending_receivables']:,.2f}`\n"
+            f"• **Overdue Balances**: `${res['total_overdue_balance']:,.2f}`\n"
+            f"• **Active Clients**: `{res['total_clients']}` | **Invoices**: `{res['total_invoices']}`"
+        )
+        return {"text": text, "tool_calls": tool_calls}
+
+    # 8. Conversational fallback (No tools invoked)
     text = (
-        f"**Studio Financial Performance Overview**:\n\n"
-        f"• **Total Revenue Earned**: `${res['total_revenue_earned']:,.2f}`\n"
-        f"• **Pending Receivables**: `${res['total_pending_receivables']:,.2f}`\n"
-        f"• **Overdue Balances**: `${res['total_overdue_balance']:,.2f}`\n"
-        f"• **Active Clients**: `{res['total_clients']}` | **Invoices**: `{res['total_invoices']}`\n\n"
-        f"Ask me anything! For example: *'What is Maya Chen's overdue balance?'*, *'Create an invoice for David Sterling for $800'*, or *'Add client Acme Corp'*."
+        "I'm here to assist you with your invoicing and client management! "
+        "You can ask me to look up any client, audit overdue payments, generate an invoice, or view financial metrics."
     )
-    return {"text": text, "tool_calls": tool_calls}
+    return {"text": text, "tool_calls": []}
+
+
+OPENAI_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": tool["name"],
+            "description": tool["description"],
+            "parameters": tool["parameters"],
+        }
+    }
+    for tool in BILLFLOW_TOOLS_SPEC
+]
+
+
+def get_llm_client_config(
+    provider: str | None,
+    api_key: str | None,
+    model: str | None,
+) -> tuple[str | None, str | None, str]:
+    from app.config import settings
+
+    effective_key = (
+        api_key
+        or (settings.gemini_api_key if provider == "gemini" else None)
+        or (settings.groq_api_key if provider == "groq" else None)
+        or (settings.openai_api_key if provider == "openai" else None)
+        or settings.gemini_api_key
+        or settings.groq_api_key
+        or settings.openai_api_key
+    )
+
+    if not effective_key:
+        return None, None, "local_engine"
+
+    eff_provider = (provider or settings.llm_provider or "auto").lower()
+
+    if "gemini" in eff_provider or effective_key.startswith("AIza") or effective_key.startswith("AQ."):
+        base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+        if model and model.startswith("gemini"):
+            eff_model = model
+        elif eff_provider.startswith("gemini-"):
+            eff_model = eff_provider
+        else:
+            eff_model = "gemini-3.5-flash"
+        return effective_key, base_url, f"Google Gemini ({eff_model})"
+
+    if eff_provider == "groq" or effective_key.startswith("gsk_"):
+        base_url = "https://api.groq.com/openai/v1"
+        eff_model = model or "llama-3.3-70b-versatile"
+        return effective_key, base_url, f"Groq Llama 3.3 ({eff_model})"
+
+    if eff_provider == "openrouter":
+        base_url = "https://openrouter.ai/api/v1"
+        eff_model = model or "meta-llama/llama-3.3-70b-instruct:free"
+        return effective_key, base_url, f"OpenRouter ({eff_model})"
+
+    # Default OpenAI
+    eff_model = model or "gpt-4o-mini"
+    return effective_key, None, f"OpenAI ({eff_model})"
+
+
+def run_llm_agent(
+    message: str,
+    db: Session,
+    user: User,
+    history: list[dict] | None = None,
+    provider: str | None = None,
+    api_key: str | None = None,
+    model: str | None = None,
+) -> dict:
+    import openai
+
+    key, base_url, provider_name = get_llm_client_config(provider, api_key, model)
+
+    if not key:
+        local_res = agent_intent_and_tool_dispatcher(message, db, user)
+        return {
+            "text": local_res["text"],
+            "tool_calls": local_res.get("tool_calls", []),
+            "provider_used": "Built-in Autonomous Engine (Connect free Gemini/Groq key in Settings for full LLM reasoning)",
+            "model_used": "deterministic-agent-v1",
+        }
+
+    system_prompt = (
+        "You are BillFlow AI Operator, an intelligent, conversational, and expert AI chatbot for the BillFlow Invoicing Platform.\n"
+        "You act just like ChatGPT: friendly, knowledgeable, articulate, and deeply versed in every detail of the BillFlow platform.\n\n"
+        "--- COMPLETE BILLFLOW SYSTEM KNOWLEDGE BASE ---\n"
+        "1. OVERVIEW & PURPOSE:\n"
+        "   - BillFlow is a high-speed SaaS invoicing and receivables operations platform for freelancers, creative studios, and agencies.\n"
+        "   - Primary goal: eliminate payment friction, automate receivables tracking, and provide transparent client billing.\n\n"
+        "2. INVOICING LIFECYCLE & ENGINE (/invoices, /invoices/new, /invoices/[id]):\n"
+        "   - Invoice Creation: add multiple line items with descriptions, quantities, and unit rates. Automatic subtotal calculation.\n"
+        "   - Financial Adjustments: supports percentage discounts and percentage tax rates. Total = (subtotal - discount) + tax.\n"
+        "   - Due Dates & Notes: customizable due dates, custom notes, and payment instructions on each invoice.\n"
+        "   - Dynamic Statuses: 'draft', 'sent', 'paid', 'overdue'.\n"
+        "   - Auto Overdue Engine: if an invoice is unpaid and the current date exceeds 'due_date', the system dynamically computes its status as 'overdue'.\n"
+        "   - Instant Shareable Payment Links (/pay/[token]): every invoice generates a cryptographically secure, public token. Clients do NOT need an account to view or pay their invoice.\n"
+        "   - Print & PDF Export: full receipt-style printable layout directly in the invoice view with one click ('Print / Save PDF').\n\n"
+        "3. CLIENT MANAGEMENT & FINANCIAL SEGREGATION (/clients):\n"
+        "   - Stores client contact information (name, email, company, phone, address).\n"
+        "   - Client-Wise Financial Segregation: every client card dynamically tracks lifetime revenue collected, outstanding receivables, and overdue amounts.\n"
+        "   - Status tabs to quickly filter clients by billing health.\n\n"
+        "4. CLIENT PORTAL & BATCH PAY (/portal):\n"
+        "   - A dedicated portal designed for clients who have multiple invoices to pay across freelancers or brands.\n"
+        "   - Clients log in with their email address to see their personalized dashboard showing all their pending and paid invoices.\n"
+        "   - Batch Payment: clients can select multiple pending invoices using checkboxes and pay them all in a single click.\n\n"
+        "5. DASHBOARD & ANALYTICS (/dashboard):\n"
+        "   - Real-time studio KPIs: Total Collected Revenue, Pending Receivables, Overdue Balance, and Total Invoices.\n"
+        "   - Interactive 6-month monthly revenue trajectory chart.\n"
+        "   - Quick action shortcuts and recent invoice stream.\n\n"
+        "6. SETTINGS & CUSTOMIZATION (/settings):\n"
+        "   - Studio business profile: business name, currency code (USD, EUR, GBP, CAD, AUD, etc.), default tax rate.\n"
+        "   - Payment terms and bank / Stripe transfer instructions.\n\n"
+        "7. SECURITY & MULTI-TENANCY:\n"
+        "   - Strict data isolation: each freelancer/studio only sees their own clients, invoices, and analytics.\n"
+        "   - Protected with JWT authentication and bcrypt password hashing.\n\n"
+        "--- WORKSPACE DATABASE TOOLS (ONLY WHEN NEEDED) ---\n"
+        "You also have access to 6 live tools to inspect or modify the user's workspace database:\n"
+        "- `get_clients`: retrieve client directory with collected revenue, pending balance, and overdue amounts.\n"
+        "- `get_client_analytics`: deep dive into a specific client's history, overdue invoices, and stats.\n"
+        "- `create_client`: register a new client with email, name, and company.\n"
+        "- `create_invoice`: create a real invoice with itemized services, tax, discount, and due date.\n"
+        "- `get_invoices`: filter and inspect invoices by status or client.\n"
+        "- `get_dashboard_summary`: high level business revenue and KPI summary.\n\n"
+        "--- CONVERSATIONAL & TOOL CALLING RULES ---\n"
+        "1. For questions about BillFlow features, concepts, billing workflows, how-to guides, advice, greetings, or general chat, ALWAYS respond naturally, clearly, and conversationally in Markdown WITHOUT calling any tools. You are a complete knowledge authority on BillFlow!\n"
+        "2. ONLY call a database tool when the user asks you to perform an action (e.g. 'create an invoice', 'add client') or inspect real workspace data (e.g. 'who owes me money?', 'show Maya Chen's balance', 'what are my KPIs?').\n"
+        "3. Always format your responses using clean GitHub Flavored Markdown with bold text, bullet points, and code styling where helpful."
+    )
+
+    client = openai.OpenAI(api_key=key, base_url=base_url)
+
+    messages = [{"role": "system", "content": system_prompt}]
+    if history:
+        for h in history[-8:]:
+            if h.get("role") in ["user", "assistant", "system"] and h.get("content"):
+                messages.append({"role": h["role"], "content": str(h["content"])})
+
+    messages.append({"role": "user", "content": message})
+
+    executed_tool_calls = []
+
+    try:
+        # Extract model name from provider_name or model parameter
+        if "(" in provider_name and ")" in provider_name:
+            chosen_model = provider_name.split("(")[1].split(")")[0]
+        else:
+            chosen_model = model or "gemini-3.5-flash"
+
+
+        response = client.chat.completions.create(
+            model=chosen_model,
+            messages=messages,
+            tools=OPENAI_TOOLS,
+            tool_choice="auto",
+        )
+
+        choice = response.choices[0]
+        assistant_msg = choice.message
+
+        if assistant_msg.tool_calls:
+            # Append assistant message with tool calls
+            messages.append(assistant_msg)
+
+            for tc in assistant_msg.tool_calls:
+                tool_name = tc.function.name
+                try:
+                    tool_args = json.loads(tc.function.arguments)
+                except Exception:
+                    tool_args = {}
+
+                result = execute_tool_call(tool_name, tool_args, db, user)
+                executed_tool_calls.append({
+                    "tool": tool_name,
+                    "args": tool_args,
+                    "result": result,
+                })
+
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "name": tool_name,
+                    "content": json.dumps(result),
+                })
+
+            # Call LLM again to synthesize response with tool results
+            second_response = client.chat.completions.create(
+                model=chosen_model,
+                messages=messages,
+            )
+            final_text = second_response.choices[0].message.content or "Tool executed successfully."
+        else:
+            final_text = assistant_msg.content or "I have processed your request."
+
+        return {
+            "text": final_text,
+            "tool_calls": executed_tool_calls,
+            "provider_used": provider_name,
+            "model_used": chosen_model,
+        }
+
+    except Exception as e:
+        # Fallback to local dispatcher on API failure
+        local_res = agent_intent_and_tool_dispatcher(message, db, user)
+        return {
+            "text": f"{local_res['text']}\n\n*(Note: LLM provider returned `{str(e)}`. Executed via local tool dispatcher.)*",
+            "tool_calls": local_res.get("tool_calls", []),
+            "provider_used": f"Fallback ({str(e)[:40]})",
+            "model_used": "local-fallback",
+        }
+
