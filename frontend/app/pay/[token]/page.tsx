@@ -260,7 +260,11 @@ export default function PublicInvoicePage() {
 
             {invoice.discount > 0 && (
               <div className="flex justify-between text-green-700">
-                <span>Discount</span>
+                <span>
+                  Discount
+                  {invoice.subtotal > 0 &&
+                    ` (${Math.round((invoice.discount / invoice.subtotal) * 1000) / 10}%)`}
+                </span>
                 <span className="font-mono font-semibold">
                   -{money(invoice.discount, currency)}
                 </span>
