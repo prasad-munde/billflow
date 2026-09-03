@@ -36,7 +36,8 @@ export default function EditInvoicePage() {
   const [status, setStatus] = useState<string>("draft");
   const [notes, setNotes] = useState<string>("");
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [discount, setDiscount] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
+  const [discountValue, setDiscountValue] = useState<number>(0);
   const [currency, setCurrency] = useState<string>("USD");
   const [items, setItems] = useState<Item[]>([
     { description: "", quantity: 1, rate: 0 },
@@ -61,7 +62,24 @@ export default function EditInvoicePage() {
         setStatus(invoiceData.status);
         setNotes(invoiceData.notes || "");
         setTaxRate(invoiceData.tax_rate || 0);
-        setDiscount(invoiceData.discount || 0);
+
+        const invSubtotal = (invoiceData.items || []).reduce(
+          (s: number, it: any) => s + (Number(it.quantity) || 0) * (Number(it.rate) || 0),
+          0
+        );
+        if (invoiceData.discount > 0 && invSubtotal > 0) {
+          const pct = Math.round((invoiceData.discount / invSubtotal) * 100);
+          if (Math.abs((invSubtotal * pct) / 100 - invoiceData.discount) < 0.01) {
+            setDiscountType("percent");
+            setDiscountValue(pct);
+          } else {
+            setDiscountType("fixed");
+            setDiscountValue(invoiceData.discount);
+          }
+        } else {
+          setDiscountValue(invoiceData.discount || 0);
+        }
+
         if (settingsData?.currency) setCurrency(settingsData.currency);
         if (invoiceData.items && invoiceData.items.length > 0) {
           setItems(
@@ -84,7 +102,11 @@ export default function EditInvoicePage() {
     (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.rate) || 0),
     0
   );
-  const discountedBase = Math.max(0, subtotal - (Number(discount) || 0));
+  const effectiveDiscount =
+    discountType === "percent"
+      ? Math.round(((subtotal * (Number(discountValue) || 0)) / 100) * 100) / 100
+      : Number(discountValue) || 0;
+  const discountedBase = Math.max(0, subtotal - effectiveDiscount);
   const calculatedTax = discountedBase * ((Number(taxRate) || 0) / 100);
   const total = discountedBase + calculatedTax;
 
@@ -136,7 +158,7 @@ export default function EditInvoicePage() {
           due_date: dueDate,
           notes: notes.trim() || null,
           tax_rate: Number(taxRate) || 0,
-          discount: Number(discount) || 0,
+          discount: Number(effectiveDiscount) || 0,
           status: status,
           items: items.map((it) => ({
             description: it.description.trim(),
@@ -334,17 +356,55 @@ export default function EditInvoicePage() {
               </div>
 
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs">Discount ({currency})</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs">Discount</span>
+                  <div className="inline-flex rounded-md bg-white/10 p-0.5 text-[10px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setDiscountType("percent")}
+                      className={`px-1.5 py-0.5 rounded transition ${
+                        discountType === "percent"
+                          ? "bg-lime text-ink font-extrabold"
+                          : "text-white/60 hover:text-white"
+                      }`}
+                      title="Discount as percentage"
+                    >
+                      %
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDiscountType("fixed")}
+                      className={`px-1.5 py-0.5 rounded transition ${
+                        discountType === "fixed"
+                          ? "bg-lime text-ink font-extrabold"
+                          : "text-white/60 hover:text-white"
+                      }`}
+                      title="Discount as fixed amount"
+                    >
+                      {currency === "USD" ? "$" : currency}
+                    </button>
+                  </div>
+                </div>
                 <input
                   type="number"
                   min="0"
+                  max={discountType === "percent" ? "100" : undefined}
                   step="any"
                   className="w-24 rounded-lg bg-white/10 px-2.5 py-1 text-right font-mono text-sm text-white outline-none focus:bg-white/20"
-                  value={discount || ""}
-                  onChange={(e) => setDiscount(Number(e.target.value))}
-                  placeholder="0.00"
+                  value={discountValue || ""}
+                  onChange={(e) => setDiscountValue(Number(e.target.value))}
+                  placeholder={discountType === "percent" ? "0%" : "0.00"}
                 />
               </div>
+
+              {effectiveDiscount > 0 && (
+                <div className="flex justify-between text-xs text-green-400">
+                  <span>
+                    Discount applied {discountType === "percent" && `(${discountValue}%)`}
+                  </span>
+                  <span className="font-mono">-{money(effectiveDiscount, currency)}</span>
+                </div>
+              )}
 
               <div className="flex items-center justify-between gap-3">
                 <span className="text-xs">Tax (%)</span>
