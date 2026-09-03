@@ -1,6 +1,6 @@
-# BillFlow — Modern Invoicing SaaS for Freelancers & Studios
+# BillFlow — Modern Invoicing SaaS & Autonomous AI Operator
 
-> **BillFlow** is a full-featured, multi-tenant B2B SaaS invoicing platform built for freelancers, contractors, and boutique creative studios. It replaces spreadsheet billing and Word documents with elegant invoices, real-time revenue tracking, automated overdue status derivation, unguessable public payment links, and simulated client checkout without requiring client account creation.
+> **BillFlow** is a modern, multi-tenant B2B SaaS invoicing and receivables operations platform built for freelancers, contractors, and creative studios. It replaces messy spreadsheets and Word templates with elegant invoices, real-time revenue analytics, automated overdue tracking, unguessable public checkout links, a dedicated client portal with batch payments, and an autonomous **ChatGPT-style AI Operator** powered by Google Gemini.
 
 ---
 
@@ -8,7 +8,8 @@
 
 - **Demo Account Email:** `demo@billflow.app`
 - **Demo Account Password:** `Demo123!` *(or use the 1-click **Use Demo Login** button on the sign-in page)*
-- **Pre-seeded Data:** Contains 4 realistic clients (*Maya Chen, David Sterling, Elena Rostova, Marcus Vance*) and 6 invoices across `paid`, `sent`, `overdue`, and `draft` statuses.
+- **Demo Client Portal Email:** `maya@lumencollective.com`
+- **Pre-seeded Dataset:** Contains 4 realistic clients (*Maya Chen, David Sterling, Elena Rostova, Marcus Vance*) and active invoices across `paid`, `sent`, `overdue`, and `draft` statuses.
 
 ---
 
@@ -17,118 +18,134 @@
 | Layer | Technology |
 | :--- | :--- |
 | **Frontend** | **Next.js 15 (App Router)**, React 19, TypeScript, Tailwind CSS, Recharts, Heroicons |
+| **AI Operator** | **Google Gemini 3.5 Flash** / **Gemini 3.6 Flash** / Groq Llama 3.3 / OpenAI, Function Calling, Custom Markdown Engine |
 | **Backend** | **Python 3.12, FastAPI**, SQLAlchemy 2.0 ORM, Pydantic v2, Python-Jose (JWT), Passlib (Bcrypt) |
-| **Database** | **PostgreSQL** / SQLite (for fast testing), **Alembic** migrations |
-| **Testing** | **Pytest**, TestClient, Isolated in-memory SQLite fixtures |
-| **Hosting** | Vercel (Frontend) & Render / Railway / Fly.io (Backend & PostgreSQL) |
+| **Database** | **PostgreSQL** / SQLite (for zero-config local dev & testing), **Alembic** migrations |
+| **Testing** | **Pytest** (14/14 passing tests), TestClient, in-memory SQLite fixtures |
+| **Deployment** | Vercel (Frontend) & Render / Railway / Fly.io (Backend & PostgreSQL) |
 
 ---
 
-##  Key Features & SaaS Capabilities
+##  Key Features & Capabilities
 
-### 1. Multi-Tenant User Isolation & Authentication
-- Secure JWT bearer token authentication with bcrypt password hashing (`/auth/signup`, `/auth/login`, `/auth/me`).
-- Strict tenant isolation: every client, invoice, line item, and studio setting query filters strictly by `current_user.id`.
+### 1.  Autonomous AI Operator (`/ai-operator`)
+- **ChatGPT-Style Experience**: Full-screen, conversational command center designed like ChatGPT with wide canvas, conversation history persistence in `localStorage`, and prompt starter suggestions.
+- **Deep System Knowledge Base**: The AI Operator knows everything about BillFlow (Client Portal, Batch Pay, PDF printing, taxes, discounts, settings, workflow advice).
+- **Multi-LLM Provider Engine**:
+  - **Google Gemini 3.5 Flash** (Active default) & **Gemini 3.6 Flash / 2.0 Flash**
+  - **Groq Llama 3.3 70B** (Ultra-fast inference)
+  - **OpenAI GPT-4o / GPT-4o-mini**
+  - **Built-in Local Autonomous Engine** (Runs locally with zero external keys)
+- **Real Autonomous Database Tool Calling**:
+  - `get_clients`: Queries directory with segregated revenue & overdue balances.
+  - `get_client_analytics`: Deep-dive audit into a specific client's invoicing history.
+  - `create_client`: Registers new clients into the database.
+  - `create_invoice`: Generates real itemized invoices with public payment links.
+  - `get_invoices`: Inspects and filters invoices by status or client.
+  - `get_dashboard_summary`: High-level business KPI diagnostics.
+- **Zero Forced Tool Calls**: Conversational greetings (*"hi"*, *"how are you"*) and general questions are answered naturally without executing tools; tools are only dispatched when action or data retrieval is requested.
+- **Rich Markdown Rendering**: Custom `MarkdownRenderer` component cleanly parses headings, bold text, bullet lists, and code blocks without raw `#` or `###` symbols.
 
-### 2. Client Management
-- Manage clients with full contact profiles: **Full Name, Email, Company Name, Billing Address, and Phone Number**.
-- Client search, edit modal, delete confirmation modal, and loading skeletons.
+### 2.  Client-Wise Financial Segregation (`/clients`)
+- **Individual Financial Metrics**: Every client card dynamically computes and displays:
+  - **Lifetime Collected Revenue**
+  - **Pending Receivables**
+  - **Overdue Balances**
+  - **Total Invoice Count**
+- **Status Filter Tabs with Live Counters**: `All`, `Pending`, `Overdue`, and `Settled`.
+- **Context-Aware Empty States**: Shows celebratory feedback (e.g. *"Zero Overdue Balances 🎉"*) when filters have 0 records instead of generic onboarding prompts.
 
-### 3. Smart Invoice Builder & AI Assistant
-- Sequential invoice numbering isolated per user (`INV-0001`, `INV-0002`, etc.) with customizable prefixes.
-- Dynamic line items (add/remove, description, quantity, unit rate, calculated line total).
-- Authoritative backend calculations: **Subtotal, Discount, Tax %, and Total Amount**.
-- **"Draft with AI" Assistant (`/ai/draft-invoice`)**: Converts natural language prompts (e.g. *"Invoice Acme for 20 hours of UI design at $100/hr and brand guide for $800"*) directly into structured line items.
+### 3.  Dedicated Client Portal & Batch Pay (`/portal`)
+- Built specifically for clients who receive invoices across freelancers or brands.
+- Clients log in with their email address to see their personalized dashboard showing all their pending, overdue, and paid invoices.
+- **Batch Payment**: Clients can select multiple pending invoices using checkboxes and pay them simultaneously in a single transaction.
 
-### 4. Server-Side Filtering, Searching & Sorting
-- Dynamic query parameter filtering on `GET /invoices`:
-  - `q`: Search by client name, client company, or invoice number
-  - `status`: Filter by `draft`, `sent`, `paid`, `overdue`
-  - `client_id`: Filter by specific client
-  - `sort`: Sort by `newest`, `oldest`, `due`, `amount_desc`, `amount_asc`, `number`
+### 4.  Smart Invoice Builder & AI Drafting (`/invoices/new`)
+- Sequential invoice numbering isolated per workspace (`NST-0001`, `NST-0002`, etc.) with customizable studio prefixes.
+- Dynamic itemization: add/remove lines with descriptions, quantities, and unit rates.
+- Authoritative backend calculations: **Subtotal, Discount %, Tax %, and Net Total Amount**.
+- **Dynamic Overdue Detection**: If an invoice is unpaid and past its `due_date`, the system dynamically flags it as **OVERDUE** with visual warning badges.
 
-### 5. Automatic Overdue Detection
-- Invoices past their due date automatically display with an **OVERDUE** badge across the dashboard, invoice list, and client view without requiring cron jobs or manual intervention.
+### 5.  Instant Shareable Payment Links (`/pay/[token]`)
+- Each invoice generates a secure, cryptographically unguessable token (`secrets.token_urlsafe(32)`).
+- Clients can view, verify, and pay their invoice on desktop or mobile **without creating an account**.
+- **Interactive Simulated Checkout**: Pay modal simulates card processing and converts the invoice to `PAID` in real-time.
 
-### 6. Public Client Payment Portal (`/pay/[token]`)
-- Cryptographically secure unguessable tokens (`secrets.token_urlsafe(32)`).
-- Clients can open their invoice on desktop or mobile **without creating an account**.
-- **Interactive Test-Mode Payment Simulation**: Clicking "Pay Invoice" opens a simulated checkout modal with test card details. Confirming payment hits `POST /public/invoices/{token}/pay` and immediately converts the invoice to `PAID` with receipt confirmation.
+### 6.  High-Fidelity Print & PDF Export
+- Tailored `@media print` stylesheets allow downloading or printing invoices directly from the browser (`Print / Save PDF`) styled like high-end physical receipts without dashboard navigation.
 
-### 7. Print to PDF Export
-- Tailored `@media print` stylesheets ensure invoices print cleanly to PDF without dashboard navigation or interface elements.
+### 7.  Dashboard & Business Analytics (`/dashboard`)
+- Real-time KPIs: **Total Collected Revenue, Outstanding Receivables, and Overdue Balances**.
+- Interactive monthly revenue chart powered by **Recharts**.
+- Quick action shortcuts and recent invoices feed.
 
-### 8. Studio Branding & Logo Upload
-- Business name configuration, default currency picker (`USD $`, `EUR €`, `GBP £`, `CAD $`, `AUD $`, `INR ₹`, `JPY ¥`, `CHF Fr`), custom invoice prefixes, and multipart logo image upload.
-
-### 9. Analytics & Real-Time Dashboard
-- Real-time revenue metrics: **Collected Revenue, Outstanding Receivables, and Overdue Amount**.
-- Monthly income visualization using **Recharts**.
-- Quick action shortcuts and recent invoices list.
+### 8.  Studio Branding & Workspace Isolation (`/settings`)
+- Configure studio profile, business name, currency picker (`USD $`, `EUR €`, `GBP £`, `CAD $`, `AUD $`, `INR ₹`, `JPY ¥`), default tax rates, and payment instructions.
+- Strict multi-tenant isolation: every query is filtered strictly by authenticated user ID with secure JWT tokens and bcrypt password hashing.
 
 ---
 
-##  Repository Structure
+## 📂 Repository Structure
 
 ```
 BillFlow/
 ├── backend/
-│   ├── alembic/              # Database migration definitions
+│   ├── alembic/                  # Database migration definitions
 │   │   ├── versions/
 │   │   └── env.py
 │   ├── app/
-│   │   ├── routers/          # Modular API endpoints
-│   │   │   ├── auth.py
-│   │   │   ├── clients.py
-│   │   │   ├── invoices.py
-│   │   │   ├── public.py
-│   │   │   ├── dashboard.py
-│   │   │   ├── settings.py
-│   │   │   └── ai.py
+│   │   ├── routers/              # Modular API endpoints
+│   │   │   ├── ai.py             # LLM chat & tool calling endpoints
+│   │   │   ├── auth.py           # Signup, login, and current user
+│   │   │   ├── clients.py        # Client CRUD & segregated metrics
+│   │   │   ├── dashboard.py      # Studio KPIs & monthly chart data
+│   │   │   ├── invoices.py       # Invoice builder, status & filters
+│   │   │   ├── public.py         # /pay/[token] & client portal batch pay
+│   │   │   └── settings.py       # Studio profile & payment details
 │   │   ├── services/
-│   │   │   └── invoice_service.py # Calculations, overdue detection, numbering
-│   │   ├── models.py         # SQLAlchemy 2.0 ORM models
-│   │   ├── schemas.py        # Pydantic v2 validation schemas
-│   │   ├── auth.py           # JWT creation & current_user dependency
-│   │   ├── database.py       # Engine & SessionLocal
-│   │   └── main.py           # FastAPI application entry point
-│   ├── tests/                # Pytest automated test suite (13 passing tests)
-│   │   ├── conftest.py
+│   │   │   ├── invoice_service.py # Numbering, tax, discount & overdue checks
+│   │   │   └── llm_tools.py      # Autonomous tools & OpenAI-compatible agent runner
+│   │   ├── auth.py               # JWT tokens & bcrypt password verification
+│   │   ├── config.py             # Environment settings (Gemini, Groq, DB)
+│   │   ├── database.py           # SQLAlchemy session & engine
+│   │   ├── models.py             # User, Client, Invoice, Item models
+│   │   ├── schemas.py            # Pydantic v2 validation schemas
+│   │   └── main.py               # FastAPI application entry point
+│   ├── tests/                    # Pytest automated test suite (14 passing tests)
 │   │   ├── test_auth.py
 │   │   ├── test_clients.py
 │   │   ├── test_invoices.py
 │   │   ├── test_isolation.py
 │   │   ├── test_public_pay.py
 │   │   └── test_settings_and_ai.py
-│   ├── seed.py               # Database seeder with demo account & records
+│   ├── seed.py                   # Database seeder with demo accounts & records
 │   ├── requirements.txt
 │   └── alembic.ini
 │
 ├── frontend/
 │   ├── app/
 │   │   ├── (auth)/
-│   │   │   ├── login/page.tsx   # Login page with 1-click demo button
-│   │   │   └── signup/page.tsx  # Registration page
+│   │   │   ├── login/page.tsx     # Sign-in with 1-click demo button
+│   │   │   └── signup/page.tsx    # Studio registration
 │   │   ├── (dashboard)/
+│   │   │   ├── ai-operator/page.tsx # Full ChatGPT-style AI Operator interface
+│   │   │   ├── ai-control/page.tsx  # Redirect to /ai-operator
+│   │   │   ├── clients/page.tsx   # Client financial segregation & CRUD
 │   │   │   ├── dashboard/page.tsx # Analytics & Recharts graph
-│   │   │   ├── clients/page.tsx   # Client CRUD & search
-│   │   │   ├── invoices/
-│   │   │   │   ├── page.tsx       # Filterable invoice list
-│   │   │   │   ├── new/page.tsx   # Invoice builder with AI assistant
-│   │   │   │   └── [id]/
-│   │   │   │       ├── page.tsx   # Invoice detail, print PDF & send
-│   │   │   │       └── edit/page.tsx # Invoice editor
-│   │   │   ├── settings/page.tsx  # Branding, logo & currency
-│   │   │   └── layout.tsx         # Dashboard sidebar layout
+│   │   │   ├── guide/page.tsx     # Interactive platform documentation
+│   │   │   ├── invoices/          # Invoice management, builder & detail views
+│   │   │   ├── settings/page.tsx  # Studio profile, currency & branding
+│   │   │   └── layout.tsx         # Dashboard layout with left sidebar
 │   │   ├── pay/[token]/page.tsx   # Public client payment portal
-│   │   ├── layout.tsx             # Root layout & Toast container
+│   │   ├── portal/page.tsx        # Client portal with multi-invoice batch pay
 │   │   ├── page.tsx               # Marketing landing page
-│   │   └── globals.css            # Print media & custom styling
+│   │   └── globals.css            # Print stylesheet & typography
 │   ├── components/
-│   │   ├── sidebar.tsx            # Responsive navigation & user info
-│   │   └── toast-container.tsx    # Global animated notification bus
+│   │   ├── markdown-renderer.tsx  # Rich Markdown parser (headings, lists, code)
+│   │   ├── sidebar.tsx            # Left navigation bar with AI Operator link
+│   │   └── toast-container.tsx    # Notification system
 │   ├── lib/
-│   │   └── api.ts                 # API client, currency & date formatters
+│   │   └── api.ts                 # API client, token management & formatters
 │   ├── package.json
 │   └── tsconfig.json
 └── README.md
@@ -141,24 +158,29 @@ BillFlow/
 ### 1. Prerequisites
 - Python 3.10+
 - Node.js 18+ and npm
-- PostgreSQL (or SQLite for local zero-config development)
+- Google Gemini API Key *(Free tier available at [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey))*
 
 ### 2. Backend Setup
 ```bash
 cd backend
 
-# Create virtual environment (optional)
+# Create & activate virtual environment (optional)
 python -m venv .venv
-# On Windows: .venv\Scripts\activate
-# On macOS/Linux: source .venv/bin/activate
+# Windows: .venv\Scriptsctivate
+# macOS/Linux: source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Run migrations & seed demo dataset
+# Configure environment variables (.env)
+# DATABASE_URL=sqlite:///./billflow.db
+# GEMINI_API_KEY=your_gemini_key_here
+# LLM_PROVIDER=gemini-3.5-flash
+
+# Seed database with demo accounts & invoices
 python seed.py
 
-# Start FastAPI server (runs on http://127.0.0.1:8000)
+# Start FastAPI development server (http://localhost:8000)
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -169,7 +191,7 @@ cd frontend
 # Install dependencies
 npm install
 
-# Start Next.js development server (runs on http://localhost:3000)
+# Start Next.js development server (http://localhost:3000)
 npm run dev
 ```
 
@@ -178,6 +200,7 @@ npm run dev
 cd backend
 pytest -v
 ```
+*Current test suite: 14 passed (100%).*
 
 ---
 
@@ -187,18 +210,15 @@ pytest -v
 1. Provision a managed **PostgreSQL database** (e.g. Neon, Supabase, or Render Postgres).
 2. Set Environment Variables:
    - `DATABASE_URL`: `postgresql://user:password@host:5432/billflow`
-   - `SECRET_KEY`: Long random 64-character secret key
+   - `SECRET_KEY`: Random 64-character secret key
    - `FRONTEND_URL`: `https://your-billflow-frontend.vercel.app`
+   - `GEMINI_API_KEY`: Your Google Gemini API key
+   - `LLM_PROVIDER`: `gemini-3.5-flash`
 3. Build Command: `pip install -r requirements.txt && python seed.py`
 4. Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
 ### Deploy Frontend (Vercel)
-1. Import the repository into **Vercel** and select the `frontend` root directory.
+1. Import repository into **Vercel** and select the `frontend` directory.
 2. Set Environment Variables:
    - `NEXT_PUBLIC_API_URL`: `https://your-backend-api.onrender.com`
 3. Deploy!
-
----
-
-
-

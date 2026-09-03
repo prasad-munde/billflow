@@ -218,7 +218,7 @@ export default function Dashboard() {
       </section>
 
       {/* Chart & Quick Insights */}
-      <section className="mt-7 grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+      <section className="mt-7 w-full">
         {/* Income Over Time Chart */}
         <article className="rounded-[2rem] border border-ink/10 bg-white p-6 shadow-sm md:p-8">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -259,43 +259,6 @@ export default function Dashboard() {
                 <Bar dataKey="income" fill="#4765FF" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-        </article>
-
-        {/* Quick Action / Tips Card */}
-        <article className="flex flex-col justify-between rounded-[2rem] bg-ink p-7 text-white shadow-xl">
-          <div>
-            <p className="eyebrow text-lime">Quick Invoicing Flow</p>
-            <h2 className="mt-3 font-display text-2xl font-bold leading-snug">
-              Get paid 2x faster with shareable links.
-            </h2>
-            <p className="mt-3 text-xs leading-relaxed text-white/65">
-              Send clean, instant payment links to clients without requiring them to register an account.
-            </p>
-          </div>
-
-          <div className="mt-6 space-y-2.5 border-t border-white/10 pt-5">
-            <Link
-              href="/invoices/new"
-              className="flex items-center justify-between rounded-xl bg-white/10 p-3 text-xs font-bold text-white transition hover:bg-white/15"
-            >
-              <div className="flex items-center gap-2">
-                <DocumentTextIcon className="size-4 text-lime" />
-                <span>Create a new invoice</span>
-              </div>
-              <ArrowRightIcon className="size-3.5" />
-            </Link>
-
-            <Link
-              href="/clients"
-              className="flex items-center justify-between rounded-xl bg-white/10 p-3 text-xs font-bold text-white transition hover:bg-white/15"
-            >
-              <div className="flex items-center gap-2">
-                <UsersIcon className="size-4 text-lime" />
-                <span>Add or manage clients</span>
-              </div>
-              <ArrowRightIcon className="size-3.5" />
-            </Link>
           </div>
         </article>
       </section>

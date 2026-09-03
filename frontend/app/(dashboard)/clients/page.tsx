@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api, toast } from "@/lib/api";
+import { api, money, toast } from "@/lib/api";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -14,6 +15,11 @@ import {
   BuildingOfficeIcon,
   XMarkIcon,
   ExclamationTriangleIcon,
+  BanknotesIcon,
+  ClockIcon,
+  CheckBadgeIcon,
+  DocumentPlusIcon,
+  ArrowRightIcon,
 } from "@heroicons/react/24/outline";
 
 type Client = {
@@ -24,6 +30,12 @@ type Client = {
   address: string | null;
   phone: string | null;
   created_at: string;
+  total_billed?: number;
+  total_paid?: number;
+  total_overdue?: number;
+  total_outstanding?: number;
+  invoices_count?: number;
+  overdue_count?: number;
 };
 
 export default function Clients() {
@@ -31,6 +43,7 @@ export default function Clients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filterMode, setFilterMode] = useState<"all" | "overdue" | "outstanding" | "paid">("all");
 
   // Form Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -98,32 +111,24 @@ export default function Clients() {
     setSubmitting(true);
     setFormError("");
 
-    const payload = {
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      company: company.trim() || null,
-      address: address.trim() || null,
-      phone: phone.trim() || null,
-    };
-
     try {
       if (editingClient) {
         await api(`/clients/${editingClient.id}`, {
           method: "PUT",
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ name, email, company, address, phone }),
         });
-        toast.success(`Client "${name}" updated successfully.`);
+        toast.success("Client updated successfully.");
       } else {
         await api("/clients", {
           method: "POST",
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ name, email, company, address, phone }),
         });
-        toast.success(`Client "${name}" added.`);
+        toast.success("Client added successfully.");
       }
       setIsModalOpen(false);
       loadClients();
     } catch (err: any) {
-      setFormError(err.message || "Failed to save client.");
+      setFormError(err instanceof Error ? err.message : "Failed to save client.");
     } finally {
       setSubmitting(false);
     }
@@ -132,55 +137,145 @@ export default function Clients() {
   async function handleDelete() {
     if (!clientToDelete) return;
     setDeleting(true);
-
     try {
       await api(`/clients/${clientToDelete.id}`, {
         method: "DELETE",
       });
-      toast.success(`Client "${clientToDelete.name}" deleted.`);
+      toast.success("Client deleted.");
       setClientToDelete(null);
       loadClients();
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete client.");
+      toast.error(err instanceof Error ? err.message : "Could not delete client.");
     } finally {
       setDeleting(false);
     }
   }
 
+  // Aggregate Metrics Across Clients
+  const totalClientsCount = clients.length;
+  const totalRevenueCollected = clients.reduce((sum, c) => sum + (c.total_paid || 0), 0);
+  const totalOutstandingReceivables = clients.reduce((sum, c) => sum + (c.total_outstanding || 0), 0);
+  const totalOverdueReceivables = clients.reduce((sum, c) => sum + (c.total_overdue || 0), 0);
+
   const filteredClients = clients.filter((c) => {
-    const term = search.toLowerCase();
-    return (
-      c.name.toLowerCase().includes(term) ||
-      c.email.toLowerCase().includes(term) ||
-      (c.company && c.company.toLowerCase().includes(term))
-    );
+    const matchesSearch =
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.email.toLowerCase().includes(search.toLowerCase()) ||
+      (c.company && c.company.toLowerCase().includes(search.toLowerCase()));
+
+    if (!matchesSearch) return false;
+
+    if (filterMode === "overdue") return (c.total_overdue || 0) > 0;
+    if (filterMode === "outstanding") return (c.total_outstanding || 0) > 0;
+    if (filterMode === "paid") return (c.total_paid || 0) > 0 && (c.total_outstanding || 0) === 0;
+
+    return true;
   });
 
   return (
-    <>
-      <header className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-6 pb-12">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="eyebrow text-cobalt">Clients</p>
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight md:text-4xl">
-            People behind the projects.
-          </h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-ink">Clients</h1>
           <p className="mt-1 text-sm text-ink/60">
-            Keep every client detail, address, and invoice history in one place.
+            Client directory, contact details, and segregated financial performance.
           </p>
         </div>
-        <button onClick={openCreateModal} className="btn-dark shadow-sm">
+        <button onClick={openCreateModal} className="btn-dark !py-2.5 !px-5 text-xs font-bold">
           <PlusIcon className="size-4 stroke-[2.5]" />
-          <span>Add client</span>
+          <span>New Client</span>
         </button>
-      </header>
+      </div>
 
-      {/* Search Bar */}
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <MagnifyingGlassIcon className="absolute left-3.5 top-3.5 size-4 text-ink/40" />
+      {/* High-Level Segregation Summary Cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="card p-5 border-l-4 border-l-green-500 shadow-soft">
+          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-ink/40">
+            <span>Total Collected Revenue</span>
+            <CheckBadgeIcon className="size-4 text-green-600" />
+          </div>
+          <p className="mt-2 font-display text-2xl font-bold text-ink">
+            {money(totalRevenueCollected)}
+          </p>
+          <p className="mt-1 text-xs text-green-700 font-medium">
+            Across {totalClientsCount} clients
+          </p>
+        </div>
+
+        <div className="card p-5 border-l-4 border-l-cobalt shadow-soft">
+          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-ink/40">
+            <span>Pending Receivables</span>
+            <ClockIcon className="size-4 text-cobalt" />
+          </div>
+          <p className="mt-2 font-display text-2xl font-bold text-ink">
+            {money(totalOutstandingReceivables)}
+          </p>
+          <p className="mt-1 text-xs text-ink/50">
+            Unpaid invoices currently outstanding
+          </p>
+        </div>
+
+        <div className="card p-5 border-l-4 border-l-rose-500 shadow-soft">
+          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-ink/40">
+            <span>Overdue Amount</span>
+            <ExclamationTriangleIcon className="size-4 text-rose-600" />
+          </div>
+          <p className="mt-2 font-display text-2xl font-bold text-ink">
+            {money(totalOverdueReceivables)}
+          </p>
+          <p className="mt-1 text-xs text-rose-600 font-semibold">
+            {clients.filter(c => (c.overdue_count || 0) > 0).length} client(s) with overdue invoices
+          </p>
+        </div>
+      </div>
+
+      {/* Search & Segregation Filters Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-ink/10 bg-white p-3 shadow-xs">
+        <div className="flex flex-wrap items-center gap-1 bg-paper p-1 rounded-xl border border-ink/5">
+          <button
+            type="button"
+            onClick={() => setFilterMode("all")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+              filterMode === "all" ? "bg-white text-ink shadow-xs" : "text-ink/60 hover:text-ink"
+            }`}
+          >
+            All ({clients.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterMode("outstanding")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+              filterMode === "outstanding" ? "bg-white text-ink shadow-xs" : "text-ink/60 hover:text-ink"
+            }`}
+          >
+            Pending ({clients.filter(c => (c.total_outstanding || 0) > 0).length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterMode("overdue")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+              filterMode === "overdue" ? "bg-white text-rose-700 shadow-xs" : "text-ink/60 hover:text-ink"
+            }`}
+          >
+            Overdue ({clients.filter(c => (c.total_overdue || 0) > 0).length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterMode("paid")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+              filterMode === "paid" ? "bg-white text-ink shadow-xs" : "text-ink/60 hover:text-ink"
+            }`}
+          >
+            Settled ({clients.filter(c => (c.total_paid || 0) > 0 && (c.total_outstanding || 0) === 0).length})
+          </button>
+        </div>
+
+        <div className="relative flex-1 max-w-xs">
+          <MagnifyingGlassIcon className="absolute left-3.5 top-3 size-4 text-ink/40" />
           <input
-            className="input pl-10"
-            placeholder="Search by name, company, or email…"
+            className="input !py-1.5 !pl-9 text-xs"
+            placeholder="Search name, company, email…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -192,96 +287,203 @@ export default function Clients() {
         {loading ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div key={n} className="skeleton h-48 rounded-3xl" />
+              <div key={n} className="skeleton h-56 rounded-3xl" />
             ))}
           </div>
         ) : filteredClients.length > 0 ? (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {filteredClients.map((c) => (
-              <article
-                key={c.id}
-                className="group relative flex flex-col justify-between rounded-3xl border border-ink/10 bg-white p-6 shadow-sm transition hover:border-ink/25 hover:shadow-md"
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="grid size-11 place-items-center rounded-2xl bg-lime font-display text-lg font-bold text-ink">
-                      {c.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
-                      <button
-                        onClick={() => openEditModal(c)}
-                        className="rounded-lg p-1.5 text-ink/60 hover:bg-ink/5 hover:text-cobalt transition"
-                        title="Edit client"
-                      >
-                        <PencilSquareIcon className="size-4" />
-                      </button>
-                      <button
-                        onClick={() => setClientToDelete(c)}
-                        className="rounded-lg p-1.5 text-ink/60 hover:bg-red-50 hover:text-red-600 transition"
-                        title="Delete client"
-                      >
-                        <TrashIcon className="size-4" />
-                      </button>
-                    </div>
-                  </div>
+            {filteredClients.map((c) => {
+              const paid = c.total_paid || 0;
+              const overdue = c.total_overdue || 0;
+              const outstanding = c.total_outstanding || 0;
+              const count = c.invoices_count || 0;
 
-                  <h3 className="mt-4 font-display text-xl font-bold tracking-tight text-ink">
-                    {c.name}
-                  </h3>
-
-                  {c.company ? (
-                    <div className="mt-1 flex items-center gap-1.5 text-sm text-ink/60">
-                      <BuildingOfficeIcon className="size-4 text-ink/40 shrink-0" />
-                      <span className="truncate font-medium">{c.company}</span>
-                    </div>
-                  ) : (
-                    <p className="mt-1 text-xs text-ink/45 font-medium italic">Individual client</p>
-                  )}
-
-                  <div className="mt-4 space-y-2 border-t border-ink/8 pt-4 text-xs text-ink/65">
-                    <div className="flex items-center gap-2">
-                      <EnvelopeIcon className="size-3.5 text-ink/40 shrink-0" />
-                      <a href={`mailto:${c.email}`} className="truncate hover:text-cobalt hover:underline">
-                        {c.email}
-                      </a>
-                    </div>
-                    {c.phone && (
-                      <div className="flex items-center gap-2">
-                        <PhoneIcon className="size-3.5 text-ink/40 shrink-0" />
-                        <span>{c.phone}</span>
+              return (
+                <article
+                  key={c.id}
+                  className="group relative flex flex-col justify-between rounded-3xl border border-ink/10 bg-white p-6 shadow-sm transition hover:border-ink/25 hover:shadow-md"
+                >
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="grid size-11 place-items-center rounded-2xl bg-lime font-display text-lg font-bold text-ink">
+                        {c.name.charAt(0).toUpperCase()}
                       </div>
+                      <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                        <button
+                          onClick={() => openEditModal(c)}
+                          className="rounded-lg p-1.5 text-ink/60 hover:bg-ink/5 hover:text-cobalt transition"
+                          title="Edit client"
+                        >
+                          <PencilSquareIcon className="size-4" />
+                        </button>
+                        <button
+                          onClick={() => setClientToDelete(c)}
+                          className="rounded-lg p-1.5 text-ink/60 hover:bg-red-50 hover:text-red-600 transition"
+                          title="Delete client"
+                        >
+                          <TrashIcon className="size-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <h3 className="mt-4 font-display text-xl font-bold tracking-tight text-ink">
+                      {c.name}
+                    </h3>
+
+                    {c.company ? (
+                      <div className="mt-1 flex items-center gap-1.5 text-sm text-ink/60">
+                        <BuildingOfficeIcon className="size-4 text-ink/40 shrink-0" />
+                        <span className="truncate font-medium">{c.company}</span>
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-xs text-ink/45 font-medium italic">Individual client</p>
                     )}
-                    {c.address && (
-                      <div className="flex items-start gap-2">
-                        <MapPinIcon className="size-3.5 text-ink/40 shrink-0 mt-0.5" />
-                        <span className="line-clamp-2 leading-relaxed whitespace-pre-line">
-                          {c.address}
+
+                    {/* Financial Segregation Strip */}
+                    <div className="mt-4 rounded-2xl border border-ink/5 bg-paper p-3.5 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-ink/50 font-medium">Revenue Earned</span>
+                        <span className="font-bold text-green-700 font-mono">{money(paid)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-ink/50 font-medium">Outstanding Balance</span>
+                        <span className={`font-bold font-mono ${overdue > 0 ? "text-rose-600" : "text-ink"}`}>
+                          {money(outstanding)}
                         </span>
                       </div>
-                    )}
+                      {overdue > 0 && (
+                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-ink/5">
+                          <span className="text-rose-600 font-bold flex items-center gap-1">
+                            <ExclamationTriangleIcon className="size-3" /> Overdue
+                          </span>
+                          <span className="font-bold text-rose-600 font-mono">{money(overdue)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-ink/5 text-ink/40">
+                        <span>Total Invoices</span>
+                        <span className="font-bold text-ink/70">{count} {count === 1 ? "invoice" : "invoices"}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-1.5 border-t border-ink/8 pt-4 text-xs text-ink/65">
+                      <div className="flex items-center gap-2">
+                        <EnvelopeIcon className="size-3.5 text-ink/40 shrink-0" />
+                        <a href={`mailto:${c.email}`} className="truncate hover:text-cobalt hover:underline">
+                          {c.email}
+                        </a>
+                      </div>
+                      {c.phone && (
+                        <div className="flex items-center gap-2">
+                          <PhoneIcon className="size-3.5 text-ink/40 shrink-0" />
+                          <span>{c.phone}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+
+                  {/* Actions footer */}
+                  <div className="mt-5 pt-3 border-t border-ink/5 flex items-center justify-between">
+                    <Link
+                      href={`/invoices?search=${encodeURIComponent(c.name)}`}
+                      className="text-xs font-bold text-cobalt hover:underline"
+                    >
+                      Invoices →
+                    </Link>
+                    <Link
+                      href={`/invoices/new?clientId=${c.id}`}
+                      className="btn-dark !py-1.5 !px-3 text-[11px] font-bold flex items-center gap-1"
+                    >
+                      <PlusIcon className="size-3 stroke-[3]" />
+                      <span>New Invoice</span>
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
           <div className="rounded-3xl border border-dashed border-ink/20 bg-white/60 p-12 text-center">
-            <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-ink/5 text-ink/40">
-              <BuildingOfficeIcon className="size-6" />
-            </div>
-            <p className="mt-4 font-display text-xl font-bold">
-              {search ? "No clients match your search" : "No clients added yet"}
-            </p>
-            <p className="mt-1.5 text-sm text-ink/55">
-              {search
-                ? "Try searching for another name, company, or email."
-                : "Add your first client to start sending invoices in minutes."}
-            </p>
-            {!search && (
-              <button onClick={openCreateModal} className="btn-dark mt-5">
-                <PlusIcon className="size-4" />
-                <span>Add first client</span>
-              </button>
+            {clients.length === 0 ? (
+              // Case 1: Brand new workspace with zero clients
+              <>
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-ink/5 text-ink/40">
+                  <BuildingOfficeIcon className="size-6" />
+                </div>
+                <p className="mt-4 font-display text-xl font-bold text-ink">
+                  No clients added yet
+                </p>
+                <p className="mt-1.5 text-sm text-ink/55 max-w-sm mx-auto">
+                  Add your first client to start sending invoices in minutes.
+                </p>
+                <button onClick={openCreateModal} className="btn-dark mt-5 inline-flex items-center gap-2">
+                  <PlusIcon className="size-4" />
+                  <span>Add first client</span>
+                </button>
+              </>
+            ) : search.trim() ? (
+              // Case 2: Active search filter with no matches
+              <>
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-ink/5 text-ink/40">
+                  <MagnifyingGlassIcon className="size-6" />
+                </div>
+                <p className="mt-4 font-display text-xl font-bold text-ink">
+                  No clients match your search
+                </p>
+                <p className="mt-1.5 text-sm text-ink/55 max-w-sm mx-auto">
+                  No results found for &ldquo;{search}&rdquo;. Try another name, company, or email address.
+                </p>
+                <button onClick={() => setSearch("")} className="btn-light mt-5 text-xs font-bold">
+                  Clear search
+                </button>
+              </>
+            ) : filterMode === "overdue" ? (
+              // Case 3: Overdue filter with zero overdue clients
+              <>
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <CheckBadgeIcon className="size-6" />
+                </div>
+                <p className="mt-4 font-display text-xl font-bold text-ink">
+                  Zero Overdue Balances 🎉
+                </p>
+                <p className="mt-1.5 text-sm text-ink/55 max-w-sm mx-auto">
+                  Great news! None of your {clients.length} clients have overdue payments. All client accounts are in good standing.
+                </p>
+                <button onClick={() => setFilterMode("all")} className="btn-light mt-5 text-xs font-bold">
+                  View all clients ({clients.length})
+                </button>
+              </>
+            ) : filterMode === "paid" ? (
+              // Case 4: Settled filter with no 100% settled clients
+              <>
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-blue-50 text-cobalt">
+                  <BanknotesIcon className="size-6" />
+                </div>
+                <p className="mt-4 font-display text-xl font-bold text-ink">
+                  No Fully Settled Clients
+                </p>
+                <p className="mt-1.5 text-sm text-ink/55 max-w-sm mx-auto">
+                  Clients who have completed all payments and currently have zero pending invoices will appear here.
+                </p>
+                <button onClick={() => setFilterMode("all")} className="btn-light mt-5 text-xs font-bold">
+                  View all clients ({clients.length})
+                </button>
+              </>
+            ) : (
+              // Case 5: Pending filter with no pending receivables
+              <>
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-paper text-ink/40">
+                  <ClockIcon className="size-6" />
+                </div>
+                <p className="mt-4 font-display text-xl font-bold text-ink">
+                  No Pending Receivables
+                </p>
+                <p className="mt-1.5 text-sm text-ink/55 max-w-sm mx-auto">
+                  None of your clients currently have outstanding unpaid invoices.
+                </p>
+                <button onClick={() => setFilterMode("all")} className="btn-light mt-5 text-xs font-bold">
+                  View all clients ({clients.length})
+                </button>
+              </>
             )}
           </div>
         )}
@@ -435,7 +637,8 @@ export default function Clients() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
+
 

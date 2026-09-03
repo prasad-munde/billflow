@@ -12,14 +12,18 @@ import {
   ArrowLeftStartOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
+  BookOpenIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { api, removeToken, toast } from "@/lib/api";
 
 const links = [
   { href: "/dashboard", label: "Overview", icon: ChartPieIcon },
+  { href: "/ai-operator", label: "AI Operator", icon: SparklesIcon, badge: "AI" },
   { href: "/invoices", label: "Invoices", icon: DocumentTextIcon },
   { href: "/clients", label: "Clients", icon: UsersIcon },
+  { href: "/guide", label: "Learn & Docs", icon: BookOpenIcon },
   { href: "/settings", label: "Settings", icon: Cog6ToothIcon },
 ];
 
@@ -79,12 +83,22 @@ export function Sidebar() {
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={clsx(
-                    "flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-bold transition",
+                    "flex items-center justify-between rounded-xl px-3.5 py-3 text-sm font-bold transition",
                     isActive ? "bg-ink text-white" : "text-ink/65 hover:bg-ink/5 hover:text-ink"
                   )}
                 >
-                  <Icon className="size-5" />
-                  <span>{link.label}</span>
+                  <div className="flex items-center gap-3">
+                    <Icon className="size-5" />
+                    <span>{link.label}</span>
+                  </div>
+                  {link.badge && (
+                    <span className={clsx(
+                      "rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider",
+                      isActive ? "bg-white/20 text-white" : "bg-lime text-ink border border-ink/10"
+                    )}>
+                      {link.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -133,21 +147,45 @@ export function Sidebar() {
                   key={link.href}
                   href={link.href}
                   className={clsx(
-                    "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-bold transition",
+                    "flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-bold transition group",
                     isActive
                       ? "bg-ink text-white shadow-sm"
                       : "text-ink/60 hover:bg-ink/5 hover:text-ink"
                   )}
                 >
-                  <Icon className="size-5 shrink-0" />
-                  <span>{link.label}</span>
+                  <div className="flex items-center gap-3">
+                    <Icon className="size-5 shrink-0" />
+                    <span>{link.label}</span>
+                  </div>
+                  {link.badge && (
+                    <span className={clsx(
+                      "rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider",
+                      isActive ? "bg-white/20 text-white" : "bg-lime text-ink border border-ink/10"
+                    )}>
+                      {link.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
           </nav>
         </div>
 
-        <div className="border-t border-ink/10 pt-4">
+        <div className="border-t border-ink/10 pt-4 space-y-2">
+          <Link
+            href="/guide"
+            className="flex w-full items-center gap-2.5 rounded-xl border border-ink/10 bg-paper px-3 py-2 text-xs font-bold text-ink/75 hover:bg-ink/5 hover:text-ink transition"
+          >
+            <BookOpenIcon className="size-4 text-cobalt shrink-0" />
+            <span>Learn to Use & Docs</span>
+          </Link>
+          <Link
+            href="/portal"
+            target="_blank"
+            className="flex w-full items-center gap-2.5 rounded-xl border border-dashed border-cobalt/30 bg-cobalt/5 px-3 py-2 text-xs font-bold text-cobalt hover:bg-cobalt/10 transition"
+          >
+            <span>Client Portal Preview ↗</span>
+          </Link>
           {userEmail && (
             <div className="mb-2 px-3 py-1">
               <p className="text-[10px] font-bold uppercase tracking-wider text-ink/40">Signed in as</p>

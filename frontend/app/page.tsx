@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRightIcon,
@@ -71,13 +74,32 @@ const workflowSteps = [
 ];
 
 export default function Home() {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
     <main className="overflow-hidden bg-paper text-ink">
-      {/* Hero Section */}
-      <section className="gridline relative min-h-[720px] px-5 pt-6 md:px-12">
-        {/* Navigation Bar */}
-        <nav className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-ink/10 bg-white/85 px-6 py-3.5 shadow-sm backdrop-blur">
-          <Link href="/" className="flex items-center gap-2.5 font-display text-2xl font-bold tracking-tight">
+      {/* Floating Persistent Sticky Navigation Bar */}
+      <div className="fixed inset-x-0 top-0 z-50 px-4 pt-3 transition-all duration-300 md:px-8">
+        <nav
+          className={`mx-auto flex max-w-6xl items-center justify-between rounded-full border transition-all duration-300 ${
+            isScrolled
+              ? "border-ink/15 bg-white/90 px-6 py-2.5 shadow-lg backdrop-blur-md"
+              : "border-ink/10 bg-white/80 px-6 py-3.5 shadow-sm backdrop-blur-sm"
+          }`}
+        >
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 font-display text-2xl font-bold tracking-tight"
+          >
             <span className="grid size-8 place-items-center rounded-xl bg-lime text-base font-sans font-bold text-ink shadow-sm">
               B
             </span>
@@ -85,28 +107,45 @@ export default function Home() {
           </Link>
 
           <div className="hidden items-center gap-8 text-sm font-semibold text-ink/75 md:flex">
-            <a href="#how" className="hover:text-ink transition">How it works</a>
-            <a href="#features" className="hover:text-ink transition">Features</a>
-            <Link href="/login" className="hover:text-ink transition">Sign in</Link>
+            <a href="#how" className="hover:text-ink transition">
+              How it works
+            </a>
+            <a href="#features" className="hover:text-ink transition">
+              Features
+            </a>
+            <Link href="/login" className="hover:text-ink transition">
+              Sign in
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/login" className="btn-light !px-4 !py-2 text-xs font-bold md:hidden">
+            <Link
+              href="/login"
+              className="btn-light !px-4 !py-2 text-xs font-bold md:hidden"
+            >
               Sign in
             </Link>
-            <Link href="/signup" className="btn-dark !px-4 !py-2.5 text-xs md:text-sm font-bold shadow-sm">
+            <Link
+              href="/signup"
+              className={`btn-dark text-xs font-bold shadow-sm transition-all md:text-sm ${
+                isScrolled ? "!px-4 !py-2" : "!px-5 !py-2.5"
+              }`}
+            >
               <span>Start free</span>
               <ArrowRightIcon className="size-3.5 stroke-[2.5]" />
             </Link>
           </div>
         </nav>
+      </div>
 
-        {/* Hero Content */}
+      {/* Hero Section */}
+      <section className="gridline relative min-h-[720px] px-5 pt-24 md:px-12 md:pt-32">
+
         <div className="mx-auto grid max-w-6xl gap-12 pb-24 pt-16 md:grid-cols-[1.1fr_0.9fr] md:items-center md:pt-24">
           <div>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white px-3.5 py-1.5 text-xs font-bold text-ink shadow-sm">
               <SparklesIcon className="size-4 text-cobalt" />
-              SaaS Invoicing for Freelancers & Studios
+              Invoicing for Freelancers & Studios
             </div>
 
             <h1 className="max-w-3xl font-display text-5xl font-bold leading-[0.98] tracking-tight md:text-7xl">
@@ -269,7 +308,7 @@ export default function Home() {
             © 2026 BillFlow Invoicing SaaS. Built for independent creators & studios.
           </p>
           <div className="flex items-center gap-4 text-xs font-bold text-ink/60">
-            <Link href="/login" className="hover:text-ink">Log in</Link>
+            <Link href="/login" className="hover:text-ink">Sign in</Link>
             <Link href="/signup" className="btn-dark !py-2 !px-4 text-xs">Start free</Link>
           </div>
         </div>

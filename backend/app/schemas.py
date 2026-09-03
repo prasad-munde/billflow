@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Any
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
@@ -44,6 +45,12 @@ class ClientOut(ClientBase):
     id: int
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    total_billed: float = 0.0
+    total_paid: float = 0.0
+    total_overdue: float = 0.0
+    total_outstanding: float = 0.0
+    invoices_count: int = 0
+    overdue_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -152,3 +159,79 @@ class AIDraftResponse(BaseModel):
     client_name: str | None = None
     notes: str | None = None
     items: list[ItemInput]
+
+
+class ClientPortalInvoice(BaseModel):
+    id: int
+    number: str
+    issue_date: date
+    due_date: date
+    status: str
+    tax_rate: float
+    discount: float
+    subtotal: float
+    total: float
+    notes: str | None = None
+    public_token: str
+    paid_at: datetime | None = None
+    created_at: datetime
+    items: list[ItemOut]
+    business_name: str
+    business_logo: str | None = None
+    currency: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ClientPortalMetrics(BaseModel):
+    total_due: float
+    total_paid: float
+    unpaid_count: int
+    paid_count: int
+    brands_count: int
+
+
+class ClientPortalResponse(BaseModel):
+    client_name: str
+    client_email: str
+    client_company: str | None = None
+    metrics: ClientPortalMetrics
+    brands: list[str]
+    invoices: list[ClientPortalInvoice]
+
+
+class BatchPayRequest(BaseModel):
+    invoice_tokens: list[str] = Field(min_length=1)
+    payment_method: str = "simulated_card"
+
+
+class BatchPayResponse(BaseModel):
+    success: bool
+    paid_count: int
+    total_amount: float
+    updated_tokens: list[str]
+    message: str
+
+
+class AIChatRequest(BaseModel):
+    message: str = Field(min_length=1)
+    provider: str | None = None
+    api_key: str | None = None
+    model: str | None = None
+    history: list[dict] = Field(default_factory=list)
+
+
+class AIToolCall(BaseModel):
+    tool: str
+    args: dict = Field(default_factory=dict)
+    result: Any = None
+
+
+class AIChatResponse(BaseModel):
+    text: str
+    tool_calls: list[AIToolCall] = Field(default_factory=list)
+    provider_used: str = "local_engine"
+    model_used: str | None = None
+
+
+

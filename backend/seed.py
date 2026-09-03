@@ -211,6 +211,57 @@ db.add_all([
     InvoiceItem(invoice_id=inv6.id, description="REST API integration, client portal & Stripe setup", quantity=1, rate=1600.0, amount=1600.0),
 ])
 
+# 3. Create Second Studio for Multi-Brand Client Demonstration
+apex_email = "apex@billflow.app"
+apex_user = db.query(User).filter_by(email=apex_email).first()
+if not apex_user:
+    apex_user = User(email=apex_email, password_hash=hash_password("Demo123!"))
+    db.add(apex_user)
+    db.flush()
+    db.add(BusinessSettings(
+        user_id=apex_user.id,
+        business_name="Apex Growth Marketing",
+        currency="USD",
+        invoice_prefix="APX"
+    ))
+    db.flush()
+
+db.query(Invoice).filter_by(user_id=apex_user.id).delete()
+db.query(Client).filter_by(user_id=apex_user.id).delete()
+db.flush()
+
+# Maya Chen is also a client of Apex Growth Marketing
+maya_apex = Client(
+    user_id=apex_user.id,
+    name="Maya Chen",
+    email="maya@lumencollective.com",
+    company="Lumen Collective",
+    address="86 Spring Street, Floor 4\nNew York, NY 10012",
+    phone="+1 (212) 555-0188"
+)
+db.add(maya_apex)
+db.flush()
+
+inv_apex = Invoice(
+    user_id=apex_user.id,
+    client_id=maya_apex.id,
+    number="APX-0001",
+    issue_date=today - timedelta(days=5),
+    due_date=today + timedelta(days=9),
+    status="sent",
+    notes="Paid acquisition, search ads optimization & conversion audit.",
+    subtotal=2400.00,
+    discount=0.00,
+    tax_rate=0.00,
+    total=2400.00
+)
+db.add(inv_apex)
+db.flush()
+db.add_all([
+    InvoiceItem(invoice_id=inv_apex.id, description="Google Search Ads & Meta acquisition sprint", quantity=1, rate=1800.0, amount=1800.0),
+    InvoiceItem(invoice_id=inv_apex.id, description="Conversion rate optimization & analytics audit", quantity=1, rate=600.0, amount=600.0),
+])
+
 db.commit()
 
 print("=" * 60)
@@ -218,11 +269,13 @@ print("BILLFLOW SEED COMPLETED SUCCESSFULLY")
 print("=" * 60)
 print(f"Demo Account Email:    {demo_email}")
 print(f"Demo Account Password: Demo123!")
-print(f"Total Clients Seeded:  4")
-print(f"Total Invoices Seeded: 6 (2 Paid, 1 Overdue, 2 Sent, 1 Draft)")
+print(f"Multi-Brand Client:    maya@lumencollective.com (Billed by Northstar & Apex)")
+print(f"Total Invoices Seeded: 7 across 2 studios")
 print(f"Featured Public Token: {inv6.public_token}")
 print(f"Public Payment URL:    http://localhost:3000/pay/{inv6.public_token}")
+print(f"Client Portal URL:     http://localhost:3000/portal?email=maya@lumencollective.com")
 print("=" * 60)
 
 db.close()
+
 
