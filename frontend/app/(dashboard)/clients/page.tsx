@@ -267,7 +267,7 @@ export default function Clients() {
               filterMode === "paid" ? "bg-white text-ink shadow-xs" : "text-ink/60 hover:text-ink"
             }`}
           >
-            Settled Only
+            Settled ({clients.filter(c => (c.total_paid || 0) > 0 && (c.total_outstanding || 0) === 0).length})
           </button>
         </div>
 
@@ -403,22 +403,87 @@ export default function Clients() {
           </div>
         ) : (
           <div className="rounded-3xl border border-dashed border-ink/20 bg-white/60 p-12 text-center">
-            <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-ink/5 text-ink/40">
-              <BuildingOfficeIcon className="size-6" />
-            </div>
-            <p className="mt-4 font-display text-xl font-bold">
-              {search ? "No clients match your search" : "No clients added yet"}
-            </p>
-            <p className="mt-1.5 text-sm text-ink/55">
-              {search
-                ? "Try searching for another name, company, or email."
-                : "Add your first client to start sending invoices in minutes."}
-            </p>
-            {!search && (
-              <button onClick={openCreateModal} className="btn-dark mt-5">
-                <PlusIcon className="size-4" />
-                <span>Add first client</span>
-              </button>
+            {clients.length === 0 ? (
+              // Case 1: Brand new workspace with zero clients
+              <>
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-ink/5 text-ink/40">
+                  <BuildingOfficeIcon className="size-6" />
+                </div>
+                <p className="mt-4 font-display text-xl font-bold text-ink">
+                  No clients added yet
+                </p>
+                <p className="mt-1.5 text-sm text-ink/55 max-w-sm mx-auto">
+                  Add your first client to start sending invoices in minutes.
+                </p>
+                <button onClick={openCreateModal} className="btn-dark mt-5 inline-flex items-center gap-2">
+                  <PlusIcon className="size-4" />
+                  <span>Add first client</span>
+                </button>
+              </>
+            ) : search.trim() ? (
+              // Case 2: Active search filter with no matches
+              <>
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-ink/5 text-ink/40">
+                  <MagnifyingGlassIcon className="size-6" />
+                </div>
+                <p className="mt-4 font-display text-xl font-bold text-ink">
+                  No clients match your search
+                </p>
+                <p className="mt-1.5 text-sm text-ink/55 max-w-sm mx-auto">
+                  No results found for &ldquo;{search}&rdquo;. Try another name, company, or email address.
+                </p>
+                <button onClick={() => setSearch("")} className="btn-light mt-5 text-xs font-bold">
+                  Clear search
+                </button>
+              </>
+            ) : filterMode === "overdue" ? (
+              // Case 3: Overdue filter with zero overdue clients
+              <>
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <CheckBadgeIcon className="size-6" />
+                </div>
+                <p className="mt-4 font-display text-xl font-bold text-ink">
+                  Zero Overdue Balances 🎉
+                </p>
+                <p className="mt-1.5 text-sm text-ink/55 max-w-sm mx-auto">
+                  Great news! None of your {clients.length} clients have overdue payments. All client accounts are in good standing.
+                </p>
+                <button onClick={() => setFilterMode("all")} className="btn-light mt-5 text-xs font-bold">
+                  View all clients ({clients.length})
+                </button>
+              </>
+            ) : filterMode === "paid" ? (
+              // Case 4: Settled filter with no 100% settled clients
+              <>
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-blue-50 text-cobalt">
+                  <BanknotesIcon className="size-6" />
+                </div>
+                <p className="mt-4 font-display text-xl font-bold text-ink">
+                  No Fully Settled Clients
+                </p>
+                <p className="mt-1.5 text-sm text-ink/55 max-w-sm mx-auto">
+                  Clients who have completed all payments and currently have zero pending invoices will appear here.
+                </p>
+                <button onClick={() => setFilterMode("all")} className="btn-light mt-5 text-xs font-bold">
+                  View all clients ({clients.length})
+                </button>
+              </>
+            ) : (
+              // Case 5: Pending filter with no pending receivables
+              <>
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-paper text-ink/40">
+                  <ClockIcon className="size-6" />
+                </div>
+                <p className="mt-4 font-display text-xl font-bold text-ink">
+                  No Pending Receivables
+                </p>
+                <p className="mt-1.5 text-sm text-ink/55 max-w-sm mx-auto">
+                  None of your clients currently have outstanding unpaid invoices.
+                </p>
+                <button onClick={() => setFilterMode("all")} className="btn-light mt-5 text-xs font-bold">
+                  View all clients ({clients.length})
+                </button>
+              </>
             )}
           </div>
         )}

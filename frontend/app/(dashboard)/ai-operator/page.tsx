@@ -15,6 +15,7 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import { api, toast } from "@/lib/api";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 interface ToolCall {
   tool: string;
@@ -81,7 +82,29 @@ export default function AIOperatorPage() {
     setApiKey(savedKey);
     setProvider(savedProvider);
     setKeySaved(true);
+
+    try {
+      const savedChat = localStorage.getItem("billflow_ai_chat_history");
+      if (savedChat) {
+        const parsed = JSON.parse(savedChat);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch {
+      // Ignore
+    }
   }, []);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      try {
+        localStorage.setItem("billflow_ai_chat_history", JSON.stringify(messages));
+      } catch {
+        // Ignore
+      }
+    }
+  }, [messages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -110,6 +133,11 @@ export default function AIOperatorPage() {
   const handleNewChat = () => {
     setMessages([]);
     setInput("");
+    try {
+      localStorage.removeItem("billflow_ai_chat_history");
+    } catch {
+      // Ignore
+    }
     toast.info("Started a new conversation session.");
   };
 
@@ -189,36 +217,36 @@ export default function AIOperatorPage() {
   const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
     e.target.style.height = "auto";
-    e.target.style.height = Math.min(e.target.scrollHeight, 180) + "px";
+    e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
   };
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] flex-col rounded-3xl border border-ink/10 bg-white shadow-sm overflow-hidden">
-      {/* ChatGPT-style Header */}
-      <div className="flex items-center justify-between border-b border-ink/10 bg-[#fafaf9] px-6 py-4">
+    <div className="flex h-[calc(100vh-4.5rem)] w-full flex-col rounded-3xl border border-ink/10 bg-white shadow-sm overflow-hidden">
+      {/* Expansive ChatGPT-style Header */}
+      <div className="flex items-center justify-between border-b border-ink/10 bg-[#fafaf9] px-6 md:px-8 py-4">
         <div className="flex items-center gap-3.5">
-          <div className="grid size-10 place-items-center rounded-2xl bg-lime text-ink shadow-sm">
+          <div className="grid size-11 place-items-center rounded-2xl bg-lime text-ink shadow-sm">
             <SparklesIcon className="size-6 stroke-[2.5]" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display text-lg font-bold tracking-tight text-ink">
+            <div className="flex items-center gap-2.5">
+              <h1 className="font-display text-xl md:text-2xl font-bold tracking-tight text-ink">
                 AI Operator
               </h1>
-              <span className="rounded-full bg-lime/30 border border-lime/60 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-ink">
+              <span className="rounded-full bg-lime/40 border border-lime/80 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-ink">
                 ChatGPT Mode
               </span>
             </div>
-            <p className="text-[11px] text-ink/55">
+            <p className="text-xs text-ink/55">
               Natural conversational copilot & autonomous operations for BillFlow
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setShowKeyModal(true)}
-            className="flex items-center gap-2 rounded-2xl border border-ink/10 bg-white px-3.5 py-1.5 text-xs font-bold text-ink hover:border-cobalt transition shadow-2xs"
+            className="flex items-center gap-2 rounded-2xl border border-ink/10 bg-white px-4 py-2 text-xs font-bold text-ink hover:border-cobalt transition shadow-2xs"
           >
             <span className="size-2 rounded-full bg-green-500 animate-pulse" />
             <span>
@@ -233,45 +261,46 @@ export default function AIOperatorPage() {
 
           <button
             onClick={handleNewChat}
-            className="btn-light !py-1.5 !px-3 text-xs font-bold flex items-center gap-1.5"
+            className="btn-light !py-2 !px-3.5 text-xs font-bold flex items-center gap-1.5"
             title="Start a new chat session"
           >
-            <PlusIcon className="size-3.5 stroke-[2.5]" />
+            <PlusIcon className="size-4 stroke-[2.5]" />
             <span className="hidden sm:inline">New Chat</span>
           </button>
         </div>
       </div>
 
-      {/* Main Conversation Stream */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 md:px-12 space-y-6">
+      {/* Spacious Conversation Stream */}
+      <div className="flex-1 overflow-y-auto px-4 md:px-10 lg:px-16 py-8 space-y-8">
         {messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center max-w-2xl mx-auto text-center py-8">
-            <div className="grid size-16 place-items-center rounded-3xl bg-lime text-ink shadow-md mb-4 animate-in zoom-in-95">
-              <SparklesIcon className="size-9 stroke-[2]" />
+          /* Empty State: ChatGPT Hero & Prompt Cards */
+          <div className="flex h-full flex-col items-center justify-center max-w-3xl mx-auto text-center py-10">
+            <div className="grid size-18 place-items-center rounded-3xl bg-lime text-ink shadow-md mb-5 animate-in zoom-in-95">
+              <SparklesIcon className="size-10 stroke-[2]" />
             </div>
-            <h2 className="font-display text-2xl md:text-3xl font-bold tracking-tight text-ink">
-              What can I do for you today?
+            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight text-ink">
+              What can I help you with?
             </h2>
-            <p className="mt-2 text-xs md:text-sm text-ink/60 max-w-md leading-relaxed">
-              I know everything about BillFlow. Ask me how any feature works, audit your clients & overdue payments, or tell me to create invoices.
+            <p className="mt-2.5 text-sm md:text-base text-ink/65 max-w-xl leading-relaxed">
+              I have full knowledge of the BillFlow platform. Ask me how any feature works, audit client finances, or give instructions to create real invoices.
             </p>
 
             {/* 4-Card ChatGPT Prompt Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mt-8 text-left">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mt-10 text-left">
               {STARTER_PROMPTS.map((card, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSend(card.prompt)}
-                  className="group rounded-2xl border border-ink/10 bg-paper/60 p-4 text-xs hover:border-cobalt hover:bg-white hover:shadow-sm transition"
+                  className="group rounded-2xl border border-ink/10 bg-paper/60 p-5 hover:border-cobalt hover:bg-white hover:shadow-md transition cursor-pointer text-left"
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-base">{card.icon}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-ink/40 group-hover:text-cobalt">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xl">{card.icon}</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-ink/40 group-hover:text-cobalt">
                       {card.category}
                     </span>
                   </div>
-                  <p className="font-bold text-ink group-hover:text-cobalt">{card.title}</p>
-                  <p className="mt-1 text-[11px] text-ink/55 line-clamp-2 leading-relaxed">
+                  <p className="font-bold text-sm md:text-base text-ink group-hover:text-cobalt">{card.title}</p>
+                  <p className="mt-1.5 text-xs md:text-sm text-ink/60 line-clamp-2 leading-relaxed">
                     {card.prompt}
                   </p>
                 </button>
@@ -279,36 +308,39 @@ export default function AIOperatorPage() {
             </div>
           </div>
         ) : (
-          <div className="max-w-3xl mx-auto space-y-6">
+          /* Active Messages Stream - Wide & Comfortable Canvas */
+          <div className="max-w-4xl mx-auto space-y-7">
             {messages.map((m) => (
               <div
                 key={m.id}
-                className={`flex gap-3.5 ${
+                className={`flex gap-4 ${
                   m.sender === "user" ? "justify-end" : "justify-start"
                 }`}
               >
+                {/* Assistant Avatar */}
                 {m.sender === "assistant" && (
-                  <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-lime text-ink text-xs font-bold shadow-xs">
-                    <SparklesIcon className="size-4.5 stroke-[2.5]" />
+                  <div className="grid size-9 shrink-0 place-items-center rounded-2xl bg-lime text-ink text-sm font-bold shadow-xs mt-0.5">
+                    <SparklesIcon className="size-5 stroke-[2.5]" />
                   </div>
                 )}
 
+                {/* Message Bubble */}
                 <div
-                  className={`relative group max-w-[85%] rounded-2xl p-4.5 text-xs md:text-sm leading-relaxed ${
+                  className={`relative group rounded-3xl p-5 text-sm md:text-base leading-relaxed ${
                     m.sender === "user"
-                      ? "bg-ink text-white rounded-br-xs shadow-xs"
-                      : "bg-[#fbfbfa] text-ink border border-ink/10 rounded-bl-xs shadow-2xs"
+                      ? "max-w-[85%] bg-ink text-white rounded-br-xs shadow-xs"
+                      : "w-full max-w-[94%] bg-[#fbfbfa] text-ink border border-ink/10 rounded-bl-xs shadow-2xs"
                   }`}
                 >
-                  <div className="whitespace-pre-line space-y-2">
-                    {m.text}
-                  </div>
+                  {/* Clean Markdown Rendering - Converts ###, **, bullets, code without raw hashes! */}
+                  <MarkdownRenderer content={m.text} isUser={m.sender === "user"} />
 
+                  {/* Executed Tool Inspection (Only if tools were actually run) */}
                   {m.tool_calls && m.tool_calls.length > 0 && (
-                    <div className="mt-3.5 space-y-2 border-t border-ink/10 pt-3">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-cobalt flex items-center gap-1.5">
-                        <CommandLineIcon className="size-3.5 stroke-[2.5]" />
-                        Autonomous Database Action Executed
+                    <div className="mt-4 space-y-2.5 border-t border-ink/10 pt-3.5">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-cobalt flex items-center gap-1.5">
+                        <CommandLineIcon className="size-4 stroke-[2.5]" />
+                        Database Action Executed
                       </p>
 
                       {m.tool_calls.map((tc, idx) => {
@@ -318,7 +350,7 @@ export default function AIOperatorPage() {
                         return (
                           <div
                             key={idx}
-                            className="rounded-xl border border-ink/10 bg-white p-3 text-[11px]"
+                            className="rounded-2xl border border-ink/10 bg-white p-3.5 text-xs shadow-2xs"
                           >
                             <div
                               onClick={() => toggleToolExpand(toolKey)}
@@ -326,28 +358,28 @@ export default function AIOperatorPage() {
                             >
                               <span className="text-cobalt">⚡ {tc.tool}()</span>
                               <div className="flex items-center gap-2">
-                                <span className="rounded bg-green-100 text-green-800 px-1.5 py-0.5 text-[9px] font-bold">
+                                <span className="rounded bg-green-100 text-green-800 px-2 py-0.5 text-[10px] font-bold">
                                   SUCCESS
                                 </span>
                                 {isExpanded ? (
-                                  <ChevronUpIcon className="size-3 text-ink/40" />
+                                  <ChevronUpIcon className="size-3.5 text-ink/40" />
                                 ) : (
-                                  <ChevronDownIcon className="size-3 text-ink/40" />
+                                  <ChevronDownIcon className="size-3.5 text-ink/40" />
                                 )}
                               </div>
                             </div>
 
                             {isExpanded && (
-                              <div className="mt-2.5 space-y-2 border-t border-ink/5 pt-2 text-[10px]">
+                              <div className="mt-3 space-y-2.5 border-t border-ink/5 pt-2.5 text-xs">
                                 <div>
-                                  <span className="font-bold text-ink/50 uppercase">Parameters:</span>
-                                  <pre className="mt-1 rounded-lg bg-paper p-2 font-mono overflow-x-auto border border-ink/5 text-ink/80">
+                                  <span className="font-bold text-ink/50 uppercase text-[10px]">Parameters:</span>
+                                  <pre className="mt-1 rounded-xl bg-paper p-2.5 font-mono text-[11px] overflow-x-auto border border-ink/5 text-ink/80">
                                     {JSON.stringify(tc.args, null, 2)}
                                   </pre>
                                 </div>
                                 <div>
-                                  <span className="font-bold text-ink/50 uppercase">Database Result:</span>
-                                  <pre className="mt-1 rounded-lg bg-paper p-2 font-mono overflow-x-auto border border-ink/5 text-ink/80 max-h-40">
+                                  <span className="font-bold text-ink/50 uppercase text-[10px]">Database Result:</span>
+                                  <pre className="mt-1 rounded-xl bg-paper p-2.5 font-mono text-[11px] overflow-x-auto border border-ink/5 text-ink/80 max-h-48">
                                     {JSON.stringify(tc.result, null, 2)}
                                   </pre>
                                 </div>
@@ -359,23 +391,24 @@ export default function AIOperatorPage() {
                     </div>
                   )}
 
+                  {/* Assistant Footer Info & Copy Button */}
                   {m.sender === "assistant" && (
-                    <div className="mt-3 flex items-center justify-between border-t border-ink/5 pt-2 text-[10px] text-ink/40">
-                      <span>{m.provider_used || "AI Operator"}</span>
+                    <div className="mt-3.5 flex items-center justify-between border-t border-ink/5 pt-2.5 text-xs text-ink/40">
+                      <span className="text-[11px]">{m.provider_used || "AI Operator"}</span>
                       <button
                         onClick={() => handleCopy(m.id, m.text)}
-                        className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-ink/5 text-ink/50 hover:text-ink transition"
+                        className="flex items-center gap-1.5 rounded-lg px-2 py-1 hover:bg-ink/5 text-ink/50 hover:text-ink transition cursor-pointer"
                         title="Copy message"
                       >
                         {copiedId === m.id ? (
                           <>
-                            <CheckIcon className="size-3 text-green-600" />
-                            <span className="text-green-600 font-bold">Copied</span>
+                            <CheckIcon className="size-3.5 text-green-600" />
+                            <span className="text-green-600 font-bold text-xs">Copied</span>
                           </>
                         ) : (
                           <>
-                            <ClipboardDocumentIcon className="size-3" />
-                            <span>Copy</span>
+                            <ClipboardDocumentIcon className="size-3.5" />
+                            <span className="text-xs">Copy</span>
                           </>
                         )}
                       </button>
@@ -386,8 +419,8 @@ export default function AIOperatorPage() {
             ))}
 
             {loading && (
-              <div className="flex items-center gap-3 rounded-2xl border border-ink/10 bg-[#fbfbfa] p-4 text-xs text-ink/70 w-fit shadow-2xs animate-pulse">
-                <ArrowPathIcon className="size-4 animate-spin text-cobalt" />
+              <div className="flex items-center gap-3.5 rounded-2xl border border-ink/10 bg-[#fbfbfa] p-4 text-xs md:text-sm text-ink/70 w-fit shadow-2xs animate-pulse">
+                <ArrowPathIcon className="size-5 animate-spin text-cobalt" />
                 <span className="font-semibold">AI Operator is thinking…</span>
               </div>
             )}
@@ -397,43 +430,45 @@ export default function AIOperatorPage() {
         )}
       </div>
 
-      {/* ChatGPT-style Bottom Input Box */}
-      <div className="border-t border-ink/10 bg-white p-4 md:px-12">
-        <div className="max-w-3xl mx-auto space-y-2.5">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 text-[11px]">
+      {/* Spacious Bottom Input Bar (ChatGPT-style wide layout) */}
+      <div className="border-t border-ink/10 bg-white p-4 md:px-10 lg:px-16">
+        <div className="max-w-4xl mx-auto space-y-3">
+          {/* Quick Prompt Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 text-xs">
             <span className="text-[10px] font-black uppercase text-ink/40 shrink-0">Quick Ask:</span>
             <button
               onClick={() => handleSend("How does the Client Portal work?")}
-              className="rounded-full border border-ink/10 bg-paper px-3 py-1 font-medium text-ink/70 hover:border-cobalt hover:text-cobalt transition whitespace-nowrap shrink-0"
+              className="rounded-full border border-ink/10 bg-paper px-3.5 py-1.5 font-medium text-ink/70 hover:border-cobalt hover:text-cobalt transition whitespace-nowrap shrink-0 cursor-pointer"
             >
               Client Portal Guide
             </button>
             <button
               onClick={() => handleSend("Who owes me money right now?")}
-              className="rounded-full border border-ink/10 bg-paper px-3 py-1 font-medium text-ink/70 hover:border-cobalt hover:text-cobalt transition whitespace-nowrap shrink-0"
+              className="rounded-full border border-ink/10 bg-paper px-3.5 py-1.5 font-medium text-ink/70 hover:border-cobalt hover:text-cobalt transition whitespace-nowrap shrink-0 cursor-pointer"
             >
               Audit Overdue Balances
             </button>
             <button
               onClick={() => handleSend("How do I export or print an invoice as PDF?")}
-              className="rounded-full border border-ink/10 bg-paper px-3 py-1 font-medium text-ink/70 hover:border-cobalt hover:text-cobalt transition whitespace-nowrap shrink-0"
+              className="rounded-full border border-ink/10 bg-paper px-3.5 py-1.5 font-medium text-ink/70 hover:border-cobalt hover:text-cobalt transition whitespace-nowrap shrink-0 cursor-pointer"
             >
               PDF Printing
             </button>
             <button
               onClick={() => handleSend("Give me a summary of my business metrics")}
-              className="rounded-full border border-ink/10 bg-paper px-3 py-1 font-medium text-ink/70 hover:border-cobalt hover:text-cobalt transition whitespace-nowrap shrink-0"
+              className="rounded-full border border-ink/10 bg-paper px-3.5 py-1.5 font-medium text-ink/70 hover:border-cobalt hover:text-cobalt transition whitespace-nowrap shrink-0 cursor-pointer"
             >
               Studio KPIs
             </button>
           </div>
 
+          {/* ChatGPT Rounded Wide Input Container */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSend(input);
             }}
-            className="flex items-end gap-2 rounded-2xl border border-ink/15 bg-paper/50 p-2.5 focus-within:border-cobalt focus-within:bg-white focus-within:shadow-xs transition"
+            className="flex items-end gap-3 rounded-2xl border border-ink/15 bg-paper/50 p-3 focus-within:border-cobalt focus-within:bg-white focus-within:shadow-md transition"
           >
             <textarea
               ref={textareaRef}
@@ -442,25 +477,25 @@ export default function AIOperatorPage() {
               onChange={handleTextareaInput}
               onKeyDown={handleKeyDown}
               placeholder="Ask anything about BillFlow, audit clients, create invoices... (Shift+Enter for newline)"
-              className="flex-1 bg-transparent px-3 py-1.5 text-xs md:text-sm text-ink placeholder:text-ink/40 outline-none resize-none max-h-40 leading-relaxed"
+              className="flex-1 bg-transparent px-3 py-1.5 text-sm md:text-base text-ink placeholder:text-ink/40 outline-none resize-none max-h-48 leading-relaxed"
               disabled={loading}
             />
 
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className={`grid size-9 shrink-0 place-items-center rounded-xl transition ${
+              className={`grid size-10 shrink-0 place-items-center rounded-xl transition ${
                 input.trim() && !loading
                   ? "bg-ink text-white hover:bg-black shadow-xs cursor-pointer"
                   : "bg-ink/10 text-ink/30 cursor-not-allowed"
               }`}
               title="Send message"
             >
-              <PaperAirplaneIcon className="size-4 -rotate-45" />
+              <PaperAirplaneIcon className="size-4.5 -rotate-45" />
             </button>
           </form>
 
-          <p className="text-center text-[10px] text-ink/40">
+          <p className="text-center text-[11px] text-ink/40">
             BillFlow AI Operator • Powered by Google Gemini 3.5 Flash • Natural Chat & Autonomous Tool Calling
           </p>
         </div>

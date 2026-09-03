@@ -452,10 +452,15 @@ def agent_intent_and_tool_dispatcher(message: str, db: Session, user: User) -> d
         text = f"I've added **{name}** ({email}) to your client directory."
         return {"text": text, "tool_calls": tool_calls}
 
-    # 2. Create invoice intent
-    # e.g., "create invoice for Maya Chen for $1200 website maintenance"
-    if "create invoice" in msg_lower or "bill " in msg_lower or "send invoice" in msg_lower or "draft invoice" in msg_lower:
-        client_match = re.search(r'(?:for|to)\s+([A-Za-z0-9\s&]+?)(?:\s+(?:for|regarding|amount|\$|with)|\.|$)', msg, re.IGNORECASE)
+    # 2. Create invoice intent (robust to typos like "inovice")
+    is_create_invoice = any(k in msg_lower for k in [
+        "create invoice", "create a invoice", "create an invoice",
+        "create inovice", "create a inovice", "create an inovice",
+        "bill ", "send invoice", "draft invoice", "make invoice",
+        "new invoice", "generate invoice", "invoice for", "inovice for",
+    ])
+    if is_create_invoice:
+        client_match = re.search(r'(?:for|to)\s+([A-Za-z0-9\s&]+?)(?:\s+(?:for|regarding|amount|\$|with|\d)|\.|$)', msg, re.IGNORECASE)
         client_name = client_match.group(1).strip() if client_match else "Maya Chen"
         
         # Parse price and description
@@ -463,7 +468,7 @@ def agent_intent_and_tool_dispatcher(message: str, db: Session, user: User) -> d
         amount = float(price_match.group(1).replace(',', '')) if price_match else 1000.0
         
         desc_match = re.search(r'(?:for|amount\s+of)\s+[\$₹€£]?\d+(?:,\d+)*(?:\.\d+)?\s*(?:for\s+)?(.+)', msg, re.IGNORECASE)
-        desc = desc_match.group(1).strip() if desc_match else "Consulting & Deliverables"
+        desc = desc_match.group(1).strip() if desc_match else "UX/UI Design Services"
 
         items = [{"description": desc.capitalize(), "quantity": 1.0, "rate": amount}]
         res = tool_create_invoice(db, user, client_name_or_email=client_name, items=items)
@@ -478,7 +483,9 @@ def agent_intent_and_tool_dispatcher(message: str, db: Session, user: User) -> d
     client_names = [c.name for c in db.query(Client).filter(Client.user_id == user.id).all()]
     matched_client = next((cn for cn in client_names if cn.lower() in msg_lower), None)
 
-    if matched_client or "overdue of" in msg_lower or "revenue from" in msg_lower or "client info" in msg_lower or "how much does" in msg_lower or "balance for" in msg_lower:
+    is_client_query = any(k in msg_lower for k in ["overdue", "revenue", "balance", "how much", "status", "info", "analytics", "unpaid", "performance"])
+
+    if matched_client and is_client_query:
         c_target = matched_client
         if not c_target:
             m = re.search(r'(?:for|of|from|does)\s+([A-Za-z0-9\s]+?)(?:\s+(?:owe|have|status|balance)|\?|\.|$)', msg, re.IGNORECASE)

@@ -215,6 +215,10 @@ class BatchPayResponse(BaseModel):
 
 class AIChatRequest(BaseModel):
     message: str = Field(min_length=1)
+    provider: str | None = None
+    api_key: str | None = None
+    model: str | None = None
+    history: list[dict] = Field(default_factory=list)
 
 
 class AIToolCall(BaseModel):
@@ -226,5 +230,8 @@ class AIToolCall(BaseModel):
 class AIChatResponse(BaseModel):
     text: str
     tool_calls: list[AIToolCall] = Field(default_factory=list)
+    provider_used: str = "local_engine"
+    model_used: str | None = None
+
 
 

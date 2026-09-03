@@ -5,7 +5,12 @@ from app.auth import current_user
 from app.database import get_db
 from app.models import User
 from app.schemas import AIChatRequest, AIChatResponse, AIDraftRequest, AIDraftResponse, ItemInput
-from app.services.llm_tools import BILLFLOW_TOOLS_SPEC, agent_intent_and_tool_dispatcher, execute_tool_call
+from app.services.llm_tools import (
+    BILLFLOW_TOOLS_SPEC,
+    agent_intent_and_tool_dispatcher,
+    execute_tool_call,
+    run_llm_agent,
+)
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -21,13 +26,24 @@ def ai_chat_assistant(
     user: User = Depends(current_user),
 ):
     """
-    Process natural language prompts, dispatch tools, and return execution results.
+    Process natural language prompts with real LLM tool calling, dispatch tools, and return execution results.
     """
-    result = agent_intent_and_tool_dispatcher(payload.message, db, user)
+    result = run_llm_agent(
+        message=payload.message,
+        db=db,
+        user=user,
+        history=payload.history,
+        provider=payload.provider,
+        api_key=payload.api_key,
+        model=payload.model,
+    )
     return AIChatResponse(
         text=result["text"],
         tool_calls=result.get("tool_calls", []),
+        provider_used=result.get("provider_used", "local_engine"),
+        model_used=result.get("model_used"),
     )
+
 
 def parse_prompt_heuristic(prompt: str) -> AIDraftResponse:
     items: list[ItemInput] = []
