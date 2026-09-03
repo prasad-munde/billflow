@@ -14,6 +14,7 @@ import {
   CheckIcon,
   ExclamationTriangleIcon,
   EyeIcon,
+  EnvelopeIcon,
 } from "@heroicons/react/24/outline";
 
 type InvoiceItem = {
@@ -128,6 +129,29 @@ export default function InvoiceDetailPage() {
     }
   }
 
+  async function handleEmailClient() {
+    if (!invoice) return;
+    if (invoice.status === "draft") {
+      try {
+        const res = await api<{ status: "draft" | "sent" | "paid" | "overdue" }>(
+          `/invoices/${invoice.id}/send`,
+          { method: "POST" }
+        );
+        setInvoice({ ...invoice, status: res.status });
+      } catch {}
+    }
+
+    const fullShareUrl = `${window.location.origin}/pay/${invoice.public_token}`;
+    const studio = business?.business_name || "BillFlow Studio";
+    const subject = encodeURIComponent(`Invoice #${invoice.number} from ${studio}`);
+    const body = encodeURIComponent(
+      `Hi ${invoice.client.name},\n\nHere is your invoice #${invoice.number} for ${money(invoice.total, currency)}, due on ${formatDate(invoice.due_date)}.\n\nYou can review, print, and pay it online without creating an account using this link:\n${fullShareUrl}\n\nThank you for your business!\n${studio}`
+    );
+    window.open(`mailto:${invoice.client.email}?subject=${subject}&body=${body}`, "_blank");
+    toast.success(`Opened email composer for ${invoice.client.email}`);
+  }
+
+
   async function handleDelete() {
     if (!invoice) return;
     setDeleting(true);
@@ -221,6 +245,17 @@ export default function InvoiceDetailPage() {
             <ArrowDownTrayIcon className="size-4" />
             <span>Print / PDF</span>
           </button>
+
+          {/* Email to Client */}
+          <button
+            onClick={handleEmailClient}
+            className="btn-light !px-3.5 !py-2.5 text-xs font-bold"
+            title={`Send email directly to ${invoice.client.email}`}
+          >
+            <EnvelopeIcon className="size-4 text-cobalt" />
+            <span>Email Client</span>
+          </button>
+
 
           {/* Send / Copy Link Button */}
           <button
